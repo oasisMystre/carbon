@@ -1,10 +1,11 @@
-use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+use carbon_core::{CarbonDeserialize, borsh};
+
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x2d9aedd2dd0fa65c")]
-pub struct InitializeLbPair {
+pub struct InitializeLbPair{
     pub active_id: i32,
     pub bin_step: u16,
 }
@@ -30,14 +31,27 @@ pub struct InitializeLbPairInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for InitializeLbPair {
     type ArrangedAccounts = InitializeLbPairInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, bin_array_bitmap_extension, token_mint_x, token_mint_y, reserve_x, reserve_y, oracle, preset_parameter, funder, token_program, system_program, rent, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            lb_pair,
+            bin_array_bitmap_extension,
+            token_mint_x,
+            token_mint_y,
+            reserve_x,
+            reserve_y,
+            oracle,
+            preset_parameter,
+            funder,
+            token_program,
+            system_program,
+            rent,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(InitializeLbPairInstructionAccounts {
             lb_pair: lb_pair.pubkey,

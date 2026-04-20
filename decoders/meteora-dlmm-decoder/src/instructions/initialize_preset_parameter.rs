@@ -1,12 +1,12 @@
+
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{CarbonDeserialize, borsh};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x42bc47d3626d0eba")]
-pub struct InitializePresetParameter {
+pub struct InitializePresetParameter{
     pub ix: InitPresetParametersIx,
 }
 
@@ -21,12 +21,17 @@ pub struct InitializePresetParameterInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for InitializePresetParameter {
     type ArrangedAccounts = InitializePresetParameterInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [preset_parameter, admin, system_program, rent, _remaining @ ..] = accounts else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            preset_parameter,
+            admin,
+            system_program,
+            rent,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(InitializePresetParameterInstructionAccounts {
             preset_parameter: preset_parameter.pubkey,

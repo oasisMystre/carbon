@@ -1,16 +1,16 @@
+
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{CarbonDeserialize, borsh};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x2905eeaf64e106cd")]
-pub struct AddLiquidityByStrategyOneSide {
+pub struct AddLiquidityByStrategyOneSide{
     pub liquidity_parameter: LiquidityParameterByStrategyOneSide,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct AddLiquidityByStrategyOneSideInstructionAccounts {
     pub position: solana_pubkey::Pubkey,
     pub lb_pair: solana_pubkey::Pubkey,
@@ -24,20 +24,30 @@ pub struct AddLiquidityByStrategyOneSideInstructionAccounts {
     pub token_program: solana_pubkey::Pubkey,
     pub event_authority: solana_pubkey::Pubkey,
     pub program: solana_pubkey::Pubkey,
-    pub remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for AddLiquidityByStrategyOneSide {
     type ArrangedAccounts = AddLiquidityByStrategyOneSideInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [position, lb_pair, bin_array_bitmap_extension, user_token, reserve, token_mint, bin_array_lower, bin_array_upper, sender, token_program, event_authority, program, remaining_accounts @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            position,
+            lb_pair,
+            bin_array_bitmap_extension,
+            user_token,
+            reserve,
+            token_mint,
+            bin_array_lower,
+            bin_array_upper,
+            sender,
+            token_program,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(AddLiquidityByStrategyOneSideInstructionAccounts {
             position: position.pubkey,
@@ -52,7 +62,6 @@ impl carbon_core::deserialize::ArrangeAccounts for AddLiquidityByStrategyOneSide
             token_program: token_program.pubkey,
             event_authority: event_authority.pubkey,
             program: program.pubkey,
-            remaining_accounts: remaining_accounts.to_vec(),
         })
     }
 }

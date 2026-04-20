@@ -1,10 +1,12 @@
-use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+use carbon_core::{CarbonDeserialize, borsh};
+
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x04949164861ab53d")]
-pub struct ClosePresetParameter {}
+pub struct ClosePresetParameter{
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ClosePresetParameterInstructionAccounts {
@@ -16,12 +18,16 @@ pub struct ClosePresetParameterInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for ClosePresetParameter {
     type ArrangedAccounts = ClosePresetParameterInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [preset_parameter, admin, rent_receiver, _remaining @ ..] = accounts else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            preset_parameter,
+            admin,
+            rent_receiver,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(ClosePresetParameterInstructionAccounts {
             preset_parameter: preset_parameter.pubkey,

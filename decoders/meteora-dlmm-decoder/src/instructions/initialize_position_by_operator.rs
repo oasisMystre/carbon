@@ -1,10 +1,11 @@
-use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+use carbon_core::{CarbonDeserialize, borsh};
+
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0xfbbdbef475fe2394")]
-pub struct InitializePositionByOperator {
+pub struct InitializePositionByOperator{
     pub lower_bin_id: i32,
     pub width: i32,
     pub fee_owner: solana_pubkey::Pubkey,
@@ -29,14 +30,24 @@ pub struct InitializePositionByOperatorInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for InitializePositionByOperator {
     type ArrangedAccounts = InitializePositionByOperatorInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [payer, base, position, lb_pair, owner, operator, operator_token_x, owner_token_x, system_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            payer,
+            base,
+            position,
+            lb_pair,
+            owner,
+            operator,
+            operator_token_x,
+            owner_token_x,
+            system_program,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(InitializePositionByOperatorInstructionAccounts {
             payer: payer.pubkey,
