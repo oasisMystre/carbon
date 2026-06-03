@@ -1,14 +1,14 @@
+
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{CarbonDeserialize, borsh};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x9ec99ebd215da267")]
-pub struct WithdrawProtocolFee {
-    pub amount_x: u64,
-    pub amount_y: u64,
+pub struct WithdrawProtocolFee{
+    pub max_amount_x: u64,
+    pub max_amount_y: u64,
     pub remaining_accounts_info: RemainingAccountsInfo,
 }
 
@@ -31,14 +31,25 @@ pub struct WithdrawProtocolFeeInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for WithdrawProtocolFee {
     type ArrangedAccounts = WithdrawProtocolFeeInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, reserve_x, reserve_y, token_x_mint, token_y_mint, receiver_token_x, receiver_token_y, claim_fee_operator, operator, token_x_program, token_y_program, memo_program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            lb_pair,
+            reserve_x,
+            reserve_y,
+            token_x_mint,
+            token_y_mint,
+            receiver_token_x,
+            receiver_token_y,
+            claim_fee_operator,
+            operator,
+            token_x_program,
+            token_y_program,
+            memo_program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(WithdrawProtocolFeeInstructionAccounts {
             lb_pair: lb_pair.pubkey,

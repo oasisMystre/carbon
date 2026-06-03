@@ -1,10 +1,11 @@
-use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+use carbon_core::{CarbonDeserialize, borsh};
+
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x5f87c0c4f281e644")]
-pub struct InitializeReward {
+pub struct InitializeReward{
     pub reward_index: u64,
     pub reward_duration: u64,
     pub funder: solana_pubkey::Pubkey,
@@ -27,14 +28,23 @@ pub struct InitializeRewardInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for InitializeReward {
     type ArrangedAccounts = InitializeRewardInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, reward_vault, reward_mint, token_badge, admin, token_program, system_program, rent, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            lb_pair,
+            reward_vault,
+            reward_mint,
+            token_badge,
+            admin,
+            token_program,
+            system_program,
+            rent,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(InitializeRewardInstructionAccounts {
             lb_pair: lb_pair.pubkey,

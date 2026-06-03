@@ -1,12 +1,12 @@
+
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{CarbonDeserialize, borsh};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x94ce2ac3f7316708")]
-pub struct WithdrawIneligibleReward {
+pub struct WithdrawIneligibleReward{
     pub reward_index: u64,
     pub remaining_accounts_info: RemainingAccountsInfo,
 }
@@ -28,14 +28,23 @@ pub struct WithdrawIneligibleRewardInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for WithdrawIneligibleReward {
     type ArrangedAccounts = WithdrawIneligibleRewardInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, reward_vault, reward_mint, funder_token_account, funder, bin_array, token_program, memo_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            lb_pair,
+            reward_vault,
+            reward_mint,
+            funder_token_account,
+            funder,
+            bin_array,
+            token_program,
+            memo_program,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(WithdrawIneligibleRewardInstructionAccounts {
             lb_pair: lb_pair.pubkey,

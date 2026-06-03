@@ -1,12 +1,12 @@
+
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{CarbonDeserialize, borsh};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x70bf65ab1c907fbb")]
-pub struct ClaimFee2 {
+pub struct ClaimFee2{
     pub min_bin_id: i32,
     pub max_bin_id: i32,
     pub remaining_accounts_info: RemainingAccountsInfo,
@@ -33,14 +33,27 @@ pub struct ClaimFee2InstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for ClaimFee2 {
     type ArrangedAccounts = ClaimFee2InstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, position, sender, reserve_x, reserve_y, user_token_x, user_token_y, token_x_mint, token_y_mint, token_program_x, token_program_y, memo_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            lb_pair,
+            position,
+            sender,
+            reserve_x,
+            reserve_y,
+            user_token_x,
+            user_token_y,
+            token_x_mint,
+            token_y_mint,
+            token_program_x,
+            token_program_y,
+            memo_program,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(ClaimFee2InstructionAccounts {
             lb_pair: lb_pair.pubkey,

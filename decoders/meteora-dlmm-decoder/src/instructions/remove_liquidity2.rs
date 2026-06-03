@@ -1,12 +1,12 @@
+
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{CarbonDeserialize, borsh};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0xe6d7527ff165e392")]
-pub struct RemoveLiquidity2 {
+pub struct RemoveLiquidity2{
     pub bin_liquidity_removal: Vec<BinLiquidityReduction>,
     pub remaining_accounts_info: RemainingAccountsInfo,
 }
@@ -33,14 +33,28 @@ pub struct RemoveLiquidity2InstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for RemoveLiquidity2 {
     type ArrangedAccounts = RemoveLiquidity2InstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [position, lb_pair, bin_array_bitmap_extension, user_token_x, user_token_y, reserve_x, reserve_y, token_x_mint, token_y_mint, sender, token_x_program, token_y_program, memo_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            position,
+            lb_pair,
+            bin_array_bitmap_extension,
+            user_token_x,
+            user_token_y,
+            reserve_x,
+            reserve_y,
+            token_x_mint,
+            token_y_mint,
+            sender,
+            token_x_program,
+            token_y_program,
+            memo_program,
+            event_authority,
+            program,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(RemoveLiquidity2InstructionAccounts {
             position: position.pubkey,

@@ -1,10 +1,11 @@
-use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(
-    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
-)]
+
+use carbon_core::{CarbonDeserialize, borsh};
+
+
+#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
 #[carbon(discriminator = "0x398b2f7bd850df0a")]
-pub struct SetPreActivationSwapAddress {
+pub struct SetPreActivationSwapAddress{
     pub pre_activation_swap_address: solana_pubkey::Pubkey,
 }
 
@@ -17,12 +18,15 @@ pub struct SetPreActivationSwapAddressInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for SetPreActivationSwapAddress {
     type ArrangedAccounts = SetPreActivationSwapAddressInstructionAccounts;
 
-    fn arrange_accounts(
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, creator, _remaining @ ..] = accounts else {
+    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
+        let [
+            lb_pair,
+            creator,
+            _remaining @ ..
+        ] = accounts else {
             return None;
         };
+       
 
         Some(SetPreActivationSwapAddressInstructionAccounts {
             lb_pair: lb_pair.pubkey,
