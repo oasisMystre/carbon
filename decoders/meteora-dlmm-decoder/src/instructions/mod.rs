@@ -1,7 +1,3 @@
-
-
-
-
 use super::MeteoraDlmmDecoder;
 pub mod add_liquidity;
 pub mod add_liquidity2;
@@ -9,13 +5,18 @@ pub mod add_liquidity_by_strategy;
 pub mod add_liquidity_by_strategy2;
 pub mod add_liquidity_by_strategy_one_side;
 pub mod add_liquidity_by_weight;
+pub mod add_liquidity_event;
 pub mod add_liquidity_one_side;
 pub mod add_liquidity_one_side_precise;
 pub mod add_liquidity_one_side_precise2;
 pub mod claim_fee;
 pub mod claim_fee2;
+pub mod claim_fee2_event;
+pub mod claim_fee_event;
 pub mod claim_reward;
 pub mod claim_reward2;
+pub mod claim_reward2_event;
+pub mod claim_reward_event;
 pub mod close_claim_protocol_fee_operator;
 pub mod close_position;
 pub mod close_position2;
@@ -23,14 +24,22 @@ pub mod close_position_if_empty;
 pub mod close_preset_parameter;
 pub mod close_preset_parameter2;
 pub mod close_token_badge;
+pub mod composition_fee_event;
 pub mod create_claim_protocol_fee_operator;
 pub mod decrease_position_length;
+pub mod decrease_position_length_event;
+pub mod dynamic_fee_parameter_update_event;
+pub mod fee_parameter_update_event;
 pub mod for_idl_type_generation_do_not_call;
 pub mod fund_reward;
+pub mod fund_reward_event;
 pub mod go_to_a_bin;
+pub mod go_to_a_bin_event;
+pub mod increase_observation_event;
 pub mod increase_oracle_length;
 pub mod increase_position_length;
 pub mod increase_position_length2;
+pub mod increase_position_length_event;
 pub mod initialize_bin_array;
 pub mod initialize_bin_array_bitmap_extension;
 pub mod initialize_customizable_permissionless_lb_pair;
@@ -45,15 +54,21 @@ pub mod initialize_position_pda;
 pub mod initialize_preset_parameter;
 pub mod initialize_preset_parameter2;
 pub mod initialize_reward;
+pub mod initialize_reward_event;
 pub mod initialize_token_badge;
+pub mod lb_pair_create_event;
 pub mod migrate_bin_array;
 pub mod migrate_position;
+pub mod position_close_event;
+pub mod position_create_event;
 pub mod rebalance_liquidity;
+pub mod rebalancing_event;
 pub mod remove_all_liquidity;
 pub mod remove_liquidity;
 pub mod remove_liquidity2;
 pub mod remove_liquidity_by_range;
 pub mod remove_liquidity_by_range2;
+pub mod remove_liquidity_event;
 pub mod set_activation_point;
 pub mod set_pair_status;
 pub mod set_pair_status_permissionless;
@@ -61,6 +76,7 @@ pub mod set_pre_activation_duration;
 pub mod set_pre_activation_swap_address;
 pub mod swap;
 pub mod swap2;
+pub mod swap_event;
 pub mod swap_exact_out;
 pub mod swap_exact_out2;
 pub mod swap_with_price_impact;
@@ -69,38 +85,27 @@ pub mod update_base_fee_parameters;
 pub mod update_dynamic_fee_parameters;
 pub mod update_fees_and_reward2;
 pub mod update_fees_and_rewards;
-pub mod update_position_operator;
-pub mod update_reward_duration;
-pub mod update_reward_funder;
-pub mod withdraw_ineligible_reward;
-pub mod withdraw_protocol_fee;
-pub mod add_liquidity_event;
-pub mod claim_fee_event;
-pub mod claim_fee2_event;
-pub mod claim_reward_event;
-pub mod claim_reward2_event;
-pub mod composition_fee_event;
-pub mod decrease_position_length_event;
-pub mod dynamic_fee_parameter_update_event;
-pub mod fee_parameter_update_event;
-pub mod fund_reward_event;
-pub mod go_to_a_bin_event;
-pub mod increase_observation_event;
-pub mod increase_position_length_event;
-pub mod initialize_reward_event;
-pub mod lb_pair_create_event;
-pub mod position_close_event;
-pub mod position_create_event;
-pub mod rebalancing_event;
-pub mod remove_liquidity_event;
-pub mod swap_event;
 pub mod update_position_lock_release_point_event;
+pub mod update_position_operator;
 pub mod update_position_operator_event;
+pub mod update_reward_duration;
 pub mod update_reward_duration_event;
+pub mod update_reward_funder;
 pub mod update_reward_funder_event;
+pub mod withdraw_ineligible_reward;
 pub mod withdraw_ineligible_reward_event;
+pub mod withdraw_protocol_fee;
 
-#[derive(carbon_core::InstructionType, serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(
+    carbon_core::InstructionType,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+    Eq,
+    Debug,
+    Clone,
+    Hash,
+)]
 pub enum MeteoraDlmmInstruction {
     AddLiquidity(add_liquidity::AddLiquidity),
     AddLiquidity2(add_liquidity2::AddLiquidity2),

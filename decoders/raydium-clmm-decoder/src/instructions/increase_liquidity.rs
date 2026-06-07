@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -6,11 +6,11 @@ use carbon_core::{borsh, CarbonDeserialize};
 #[carbon(discriminator = "0x2e9cf3760dcdfbb2")]
 pub struct IncreaseLiquidity {
     pub liquidity: u128,
-    pub amount0_max: u64,
-    pub amount1_max: u64,
+    pub amount_0_max: u64,
+    pub amount_1_max: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct IncreaseLiquidityInstructionAccounts {
     pub nft_owner: solana_pubkey::Pubkey,
     pub nft_account: solana_pubkey::Pubkey,
@@ -19,10 +19,10 @@ pub struct IncreaseLiquidityInstructionAccounts {
     pub personal_position: solana_pubkey::Pubkey,
     pub tick_array_lower: solana_pubkey::Pubkey,
     pub tick_array_upper: solana_pubkey::Pubkey,
-    pub token_account0: solana_pubkey::Pubkey,
-    pub token_account1: solana_pubkey::Pubkey,
-    pub token_vault0: solana_pubkey::Pubkey,
-    pub token_vault1: solana_pubkey::Pubkey,
+    pub token_account_0: solana_pubkey::Pubkey,
+    pub token_account_1: solana_pubkey::Pubkey,
+    pub token_vault_0: solana_pubkey::Pubkey,
+    pub token_vault_1: solana_pubkey::Pubkey,
     pub token_program: solana_pubkey::Pubkey,
 }
 
@@ -32,25 +32,33 @@ impl carbon_core::deserialize::ArrangeAccounts for IncreaseLiquidity {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [nft_owner, nft_account, pool_state, protocol_position, personal_position, tick_array_lower, tick_array_upper, token_account0, token_account1, token_vault0, token_vault1, token_program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let nft_owner = next_account(&mut iter)?;
+        let nft_account = next_account(&mut iter)?;
+        let pool_state = next_account(&mut iter)?;
+        let protocol_position = next_account(&mut iter)?;
+        let personal_position = next_account(&mut iter)?;
+        let tick_array_lower = next_account(&mut iter)?;
+        let tick_array_upper = next_account(&mut iter)?;
+        let token_account_0 = next_account(&mut iter)?;
+        let token_account_1 = next_account(&mut iter)?;
+        let token_vault_0 = next_account(&mut iter)?;
+        let token_vault_1 = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
 
         Some(IncreaseLiquidityInstructionAccounts {
-            nft_owner: nft_owner.pubkey,
-            nft_account: nft_account.pubkey,
-            pool_state: pool_state.pubkey,
-            protocol_position: protocol_position.pubkey,
-            personal_position: personal_position.pubkey,
-            tick_array_lower: tick_array_lower.pubkey,
-            tick_array_upper: tick_array_upper.pubkey,
-            token_account0: token_account0.pubkey,
-            token_account1: token_account1.pubkey,
-            token_vault0: token_vault0.pubkey,
-            token_vault1: token_vault1.pubkey,
-            token_program: token_program.pubkey,
+            nft_owner,
+            nft_account,
+            pool_state,
+            protocol_position,
+            personal_position,
+            tick_array_lower,
+            tick_array_upper,
+            token_account_0,
+            token_account_1,
+            token_vault_0,
+            token_vault_1,
+            token_program,
         })
     }
 }

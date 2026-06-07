@@ -9,4 +9,5 @@ pub struct WhirlpoolsConfig {
     pub collect_protocol_fees_authority: solana_pubkey::Pubkey,
     pub reward_emissions_super_authority: solana_pubkey::Pubkey,
     pub default_protocol_fee_rate: u16,
+    pub feature_flags: u16,
 }

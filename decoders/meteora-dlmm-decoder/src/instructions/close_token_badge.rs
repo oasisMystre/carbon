@@ -1,12 +1,10 @@
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-use carbon_core::{CarbonDeserialize, borsh};
-
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x6c92566eb3fe0a68")]
-pub struct CloseTokenBadge{
-}
+pub struct CloseTokenBadge {}
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CloseTokenBadgeInstructionAccounts {
@@ -18,16 +16,12 @@ pub struct CloseTokenBadgeInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for CloseTokenBadge {
     type ArrangedAccounts = CloseTokenBadgeInstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            token_badge,
-            rent_receiver,
-            admin,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [token_badge, rent_receiver, admin, _remaining @ ..] = accounts else {
             return None;
         };
-       
 
         Some(CloseTokenBadgeInstructionAccounts {
             token_badge: token_badge.pubkey,

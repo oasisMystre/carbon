@@ -1,12 +1,12 @@
-
 use super::super::types::*;
 
-use carbon_core::{CarbonDeserialize, borsh};
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0xbc32f9a55d97263f")]
-pub struct FundReward{
+pub struct FundReward {
     pub reward_index: u64,
     pub amount: u64,
     pub carry_forward: bool,
@@ -29,22 +29,14 @@ pub struct FundRewardInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for FundReward {
     type ArrangedAccounts = FundRewardInstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            lb_pair,
-            reward_vault,
-            reward_mint,
-            funder_token_account,
-            funder,
-            bin_array,
-            token_program,
-            event_authority,
-            program,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [lb_pair, reward_vault, reward_mint, funder_token_account, funder, bin_array, token_program, event_authority, program, _remaining @ ..] =
+            accounts
+        else {
             return None;
         };
-       
 
         Some(FundRewardInstructionAccounts {
             lb_pair: lb_pair.pubkey,

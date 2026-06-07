@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -6,12 +6,12 @@ use carbon_core::{borsh, CarbonDeserialize};
 #[carbon(discriminator = "0x851d59df45eeb00a")]
 pub struct IncreaseLiquidityV2 {
     pub liquidity: u128,
-    pub amount0_max: u64,
-    pub amount1_max: u64,
+    pub amount_0_max: u64,
+    pub amount_1_max: u64,
     pub base_flag: Option<bool>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct IncreaseLiquidityV2InstructionAccounts {
     pub nft_owner: solana_pubkey::Pubkey,
     pub nft_account: solana_pubkey::Pubkey,
@@ -20,14 +20,14 @@ pub struct IncreaseLiquidityV2InstructionAccounts {
     pub personal_position: solana_pubkey::Pubkey,
     pub tick_array_lower: solana_pubkey::Pubkey,
     pub tick_array_upper: solana_pubkey::Pubkey,
-    pub token_account0: solana_pubkey::Pubkey,
-    pub token_account1: solana_pubkey::Pubkey,
-    pub token_vault0: solana_pubkey::Pubkey,
-    pub token_vault1: solana_pubkey::Pubkey,
+    pub token_account_0: solana_pubkey::Pubkey,
+    pub token_account_1: solana_pubkey::Pubkey,
+    pub token_vault_0: solana_pubkey::Pubkey,
+    pub token_vault_1: solana_pubkey::Pubkey,
     pub token_program: solana_pubkey::Pubkey,
-    pub token_program2022: solana_pubkey::Pubkey,
-    pub vault0_mint: solana_pubkey::Pubkey,
-    pub vault1_mint: solana_pubkey::Pubkey,
+    pub token_program_2022: solana_pubkey::Pubkey,
+    pub vault_0_mint: solana_pubkey::Pubkey,
+    pub vault_1_mint: solana_pubkey::Pubkey,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for IncreaseLiquidityV2 {
@@ -36,28 +36,39 @@ impl carbon_core::deserialize::ArrangeAccounts for IncreaseLiquidityV2 {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [nft_owner, nft_account, pool_state, protocol_position, personal_position, tick_array_lower, tick_array_upper, token_account0, token_account1, token_vault0, token_vault1, token_program, token_program2022, vault0_mint, vault1_mint, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let nft_owner = next_account(&mut iter)?;
+        let nft_account = next_account(&mut iter)?;
+        let pool_state = next_account(&mut iter)?;
+        let protocol_position = next_account(&mut iter)?;
+        let personal_position = next_account(&mut iter)?;
+        let tick_array_lower = next_account(&mut iter)?;
+        let tick_array_upper = next_account(&mut iter)?;
+        let token_account_0 = next_account(&mut iter)?;
+        let token_account_1 = next_account(&mut iter)?;
+        let token_vault_0 = next_account(&mut iter)?;
+        let token_vault_1 = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
+        let token_program_2022 = next_account(&mut iter)?;
+        let vault_0_mint = next_account(&mut iter)?;
+        let vault_1_mint = next_account(&mut iter)?;
 
         Some(IncreaseLiquidityV2InstructionAccounts {
-            nft_owner: nft_owner.pubkey,
-            nft_account: nft_account.pubkey,
-            pool_state: pool_state.pubkey,
-            protocol_position: protocol_position.pubkey,
-            personal_position: personal_position.pubkey,
-            tick_array_lower: tick_array_lower.pubkey,
-            tick_array_upper: tick_array_upper.pubkey,
-            token_account0: token_account0.pubkey,
-            token_account1: token_account1.pubkey,
-            token_vault0: token_vault0.pubkey,
-            token_vault1: token_vault1.pubkey,
-            token_program: token_program.pubkey,
-            token_program2022: token_program2022.pubkey,
-            vault0_mint: vault0_mint.pubkey,
-            vault1_mint: vault1_mint.pubkey,
+            nft_owner,
+            nft_account,
+            pool_state,
+            protocol_position,
+            personal_position,
+            tick_array_lower,
+            tick_array_upper,
+            token_account_0,
+            token_account_1,
+            token_vault_0,
+            token_vault_1,
+            token_program,
+            token_program_2022,
+            vault_0_mint,
+            vault_1_mint,
         })
     }
 }

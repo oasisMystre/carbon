@@ -1,12 +1,12 @@
-
 use super::super::types::*;
 
-use carbon_core::{CarbonDeserialize, borsh};
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x03dd95da6f8d76d5")]
-pub struct AddLiquidityByStrategy2{
+pub struct AddLiquidityByStrategy2 {
     pub liquidity_parameter: LiquidityParameterByStrategy,
     pub remaining_accounts_info: RemainingAccountsInfo,
 }
@@ -32,27 +32,14 @@ pub struct AddLiquidityByStrategy2InstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for AddLiquidityByStrategy2 {
     type ArrangedAccounts = AddLiquidityByStrategy2InstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            position,
-            lb_pair,
-            bin_array_bitmap_extension,
-            user_token_x,
-            user_token_y,
-            reserve_x,
-            reserve_y,
-            token_x_mint,
-            token_y_mint,
-            sender,
-            token_x_program,
-            token_y_program,
-            event_authority,
-            program,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [position, lb_pair, bin_array_bitmap_extension, user_token_x, user_token_y, reserve_x, reserve_y, token_x_mint, token_y_mint, sender, token_x_program, token_y_program, event_authority, program, _remaining @ ..] =
+            accounts
+        else {
             return None;
         };
-       
 
         Some(AddLiquidityByStrategy2InstructionAccounts {
             position: position.pubkey,

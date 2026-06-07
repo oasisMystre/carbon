@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -6,6 +6,7 @@ use carbon_core::{borsh, CarbonDeserialize};
 #[carbon(discriminator = "0x3f5794216d230868")]
 pub struct CreateOperationAccount {}
 
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CreateOperationAccountInstructionAccounts {
     pub owner: solana_pubkey::Pubkey,
     pub operation_state: solana_pubkey::Pubkey,
@@ -18,14 +19,15 @@ impl carbon_core::deserialize::ArrangeAccounts for CreateOperationAccount {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [owner, operation_state, system_program, _remaining @ ..] = accounts else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let owner = next_account(&mut iter)?;
+        let operation_state = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
 
         Some(CreateOperationAccountInstructionAccounts {
-            owner: owner.pubkey,
-            operation_state: operation_state.pubkey,
-            system_program: system_program.pubkey,
+            owner,
+            operation_state,
+            system_program,
         })
     }
 }

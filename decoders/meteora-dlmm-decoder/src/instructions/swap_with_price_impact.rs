@@ -1,11 +1,10 @@
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-use carbon_core::{CarbonDeserialize, borsh};
-
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x38ade6d0ade49ccd")]
-pub struct SwapWithPriceImpact{
+pub struct SwapWithPriceImpact {
     pub amount_in: u64,
     pub active_id: Option<i32>,
     pub max_price_impact_bps: u16,
@@ -33,28 +32,14 @@ pub struct SwapWithPriceImpactInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for SwapWithPriceImpact {
     type ArrangedAccounts = SwapWithPriceImpactInstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            lb_pair,
-            bin_array_bitmap_extension,
-            reserve_x,
-            reserve_y,
-            user_token_in,
-            user_token_out,
-            token_x_mint,
-            token_y_mint,
-            oracle,
-            host_fee_in,
-            user,
-            token_x_program,
-            token_y_program,
-            event_authority,
-            program,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [lb_pair, bin_array_bitmap_extension, reserve_x, reserve_y, user_token_in, user_token_out, token_x_mint, token_y_mint, oracle, host_fee_in, user, token_x_program, token_y_program, event_authority, program, _remaining @ ..] =
+            accounts
+        else {
             return None;
         };
-       
 
         Some(SwapWithPriceImpactInstructionAccounts {
             lb_pair: lb_pair.pubkey,

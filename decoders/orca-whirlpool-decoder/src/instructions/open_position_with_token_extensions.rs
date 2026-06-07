@@ -18,7 +18,7 @@ pub struct OpenPositionWithTokenExtensionsInstructionAccounts {
     pub position_mint: solana_pubkey::Pubkey,
     pub position_token_account: solana_pubkey::Pubkey,
     pub whirlpool: solana_pubkey::Pubkey,
-    pub token2022_program: solana_pubkey::Pubkey,
+    pub token_2022_program: solana_pubkey::Pubkey,
     pub system_program: solana_pubkey::Pubkey,
     pub associated_token_program: solana_pubkey::Pubkey,
     pub metadata_update_auth: solana_pubkey::Pubkey,
@@ -37,7 +37,7 @@ impl carbon_core::deserialize::ArrangeAccounts for OpenPositionWithTokenExtensio
         let position_mint = next_account(&mut iter)?;
         let position_token_account = next_account(&mut iter)?;
         let whirlpool = next_account(&mut iter)?;
-        let token2022_program = next_account(&mut iter)?;
+        let token_2022_program = next_account(&mut iter)?;
         let system_program = next_account(&mut iter)?;
         let associated_token_program = next_account(&mut iter)?;
         let metadata_update_auth = next_account(&mut iter)?;
@@ -49,7 +49,7 @@ impl carbon_core::deserialize::ArrangeAccounts for OpenPositionWithTokenExtensio
             position_mint,
             position_token_account,
             whirlpool,
-            token2022_program,
+            token_2022_program,
             system_program,
             associated_token_program,
             metadata_update_auth,

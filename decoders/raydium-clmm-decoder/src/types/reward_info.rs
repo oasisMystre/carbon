@@ -9,7 +9,7 @@ pub struct RewardInfo {
     pub end_time: u64,
     pub last_update_time: u64,
     pub emissions_per_second_x64: u128,
-    pub reward_total_emissioned: u64,
+    pub reward_total_emitted: u64,
     pub reward_claimed: u64,
     pub token_mint: solana_pubkey::Pubkey,
     pub token_vault: solana_pubkey::Pubkey,

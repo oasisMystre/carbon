@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -12,7 +11,7 @@ pub struct Swap {
     pub is_base_input: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SwapInstructionAccounts {
     pub payer: solana_pubkey::Pubkey,
     pub amm_config: solana_pubkey::Pubkey,
@@ -24,7 +23,6 @@ pub struct SwapInstructionAccounts {
     pub observation_state: solana_pubkey::Pubkey,
     pub token_program: solana_pubkey::Pubkey,
     pub tick_array: solana_pubkey::Pubkey,
-    pub remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for Swap {
@@ -33,24 +31,29 @@ impl carbon_core::deserialize::ArrangeAccounts for Swap {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [payer, amm_config, pool_state, input_token_account, output_token_account, input_vault, output_vault, observation_state, token_program, tick_array, remaining_accounts @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let payer = next_account(&mut iter)?;
+        let amm_config = next_account(&mut iter)?;
+        let pool_state = next_account(&mut iter)?;
+        let input_token_account = next_account(&mut iter)?;
+        let output_token_account = next_account(&mut iter)?;
+        let input_vault = next_account(&mut iter)?;
+        let output_vault = next_account(&mut iter)?;
+        let observation_state = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
+        let tick_array = next_account(&mut iter)?;
 
         Some(SwapInstructionAccounts {
-            payer: payer.pubkey,
-            amm_config: amm_config.pubkey,
-            pool_state: pool_state.pubkey,
-            input_token_account: input_token_account.pubkey,
-            output_token_account: output_token_account.pubkey,
-            input_vault: input_vault.pubkey,
-            output_vault: output_vault.pubkey,
-            observation_state: observation_state.pubkey,
-            token_program: token_program.pubkey,
-            tick_array: tick_array.pubkey,
-            remaining_accounts: remaining_accounts.to_vec(),
+            payer,
+            amm_config,
+            pool_state,
+            input_token_account,
+            output_token_account,
+            input_vault,
+            output_vault,
+            observation_state,
+            token_program,
+            tick_array,
         })
     }
 }

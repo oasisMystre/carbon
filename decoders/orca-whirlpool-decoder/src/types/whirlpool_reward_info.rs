@@ -6,7 +6,7 @@ use carbon_core::{borsh, CarbonDeserialize};
 pub struct WhirlpoolRewardInfo {
     pub mint: solana_pubkey::Pubkey,
     pub vault: solana_pubkey::Pubkey,
-    pub authority: solana_pubkey::Pubkey,
+    pub extension: [u8; 32],
     pub emissions_per_second_x64: u128,
     pub growth_global_x64: u128,
 }

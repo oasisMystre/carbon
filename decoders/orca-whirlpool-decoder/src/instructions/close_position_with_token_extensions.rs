@@ -13,7 +13,7 @@ pub struct ClosePositionWithTokenExtensionsInstructionAccounts {
     pub position: solana_pubkey::Pubkey,
     pub position_mint: solana_pubkey::Pubkey,
     pub position_token_account: solana_pubkey::Pubkey,
-    pub token2022_program: solana_pubkey::Pubkey,
+    pub token_2022_program: solana_pubkey::Pubkey,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for ClosePositionWithTokenExtensions {
@@ -28,7 +28,7 @@ impl carbon_core::deserialize::ArrangeAccounts for ClosePositionWithTokenExtensi
         let position = next_account(&mut iter)?;
         let position_mint = next_account(&mut iter)?;
         let position_token_account = next_account(&mut iter)?;
-        let token2022_program = next_account(&mut iter)?;
+        let token_2022_program = next_account(&mut iter)?;
 
         Some(ClosePositionWithTokenExtensionsInstructionAccounts {
             position_authority,
@@ -36,7 +36,7 @@ impl carbon_core::deserialize::ArrangeAccounts for ClosePositionWithTokenExtensi
             position,
             position_mint,
             position_token_account,
-            token2022_program,
+            token_2022_program,
         })
     }
 }

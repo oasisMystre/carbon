@@ -13,4 +13,8 @@ pub enum AccountsType {
     SupplementalTickArrays,
     SupplementalTickArraysOne,
     SupplementalTickArraysTwo,
+    TransferHookDepositA,
+    TransferHookDepositB,
+    TransferHookWithdrawalA,
+    TransferHookWithdrawalB,
 }

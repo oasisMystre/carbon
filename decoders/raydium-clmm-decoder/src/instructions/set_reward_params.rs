@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -11,14 +11,14 @@ pub struct SetRewardParams {
     pub end_time: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SetRewardParamsInstructionAccounts {
     pub authority: solana_pubkey::Pubkey,
     pub amm_config: solana_pubkey::Pubkey,
     pub pool_state: solana_pubkey::Pubkey,
     pub operation_state: solana_pubkey::Pubkey,
     pub token_program: solana_pubkey::Pubkey,
-    pub token_program2022: solana_pubkey::Pubkey,
+    pub token_program_2022: solana_pubkey::Pubkey,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for SetRewardParams {
@@ -27,19 +27,21 @@ impl carbon_core::deserialize::ArrangeAccounts for SetRewardParams {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [authority, amm_config, pool_state, operation_state, token_program, token_program2022, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let authority = next_account(&mut iter)?;
+        let amm_config = next_account(&mut iter)?;
+        let pool_state = next_account(&mut iter)?;
+        let operation_state = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
+        let token_program_2022 = next_account(&mut iter)?;
 
         Some(SetRewardParamsInstructionAccounts {
-            authority: authority.pubkey,
-            amm_config: amm_config.pubkey,
-            pool_state: pool_state.pubkey,
-            operation_state: operation_state.pubkey,
-            token_program: token_program.pubkey,
-            token_program2022: token_program2022.pubkey,
+            authority,
+            amm_config,
+            pool_state,
+            operation_state,
+            token_program,
+            token_program_2022,
         })
     }
 }

@@ -321,7 +321,7 @@ pub fn unnest_parsed_instructions<T: InstructionDecoderCollection>(
         result.extend(unnest_parsed_instructions(
             transaction_metadata.clone(),
             parsed_instruction.inner_instructions,
-            stack_height + 1
+            stack_height + 1,
         ));
     }
 

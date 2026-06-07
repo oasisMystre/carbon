@@ -1,11 +1,10 @@
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-use carbon_core::{CarbonDeserialize, borsh};
-
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x208eb89a6741b858")]
-pub struct UpdateFeesAndReward2{
+pub struct UpdateFeesAndReward2 {
     pub min_bin_id: i32,
     pub max_bin_id: i32,
 }
@@ -20,16 +19,12 @@ pub struct UpdateFeesAndReward2InstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for UpdateFeesAndReward2 {
     type ArrangedAccounts = UpdateFeesAndReward2InstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            position,
-            lb_pair,
-            owner,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [position, lb_pair, owner, _remaining @ ..] = accounts else {
             return None;
         };
-       
 
         Some(UpdateFeesAndReward2InstructionAccounts {
             position: position.pubkey,

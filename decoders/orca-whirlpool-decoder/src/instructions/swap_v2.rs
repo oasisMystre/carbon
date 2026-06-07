@@ -28,9 +28,9 @@ pub struct SwapV2InstructionAccounts {
     pub token_vault_a: solana_pubkey::Pubkey,
     pub token_owner_account_b: solana_pubkey::Pubkey,
     pub token_vault_b: solana_pubkey::Pubkey,
-    pub tick_array0: solana_pubkey::Pubkey,
-    pub tick_array1: solana_pubkey::Pubkey,
-    pub tick_array2: solana_pubkey::Pubkey,
+    pub tick_array_0: solana_pubkey::Pubkey,
+    pub tick_array_1: solana_pubkey::Pubkey,
+    pub tick_array_2: solana_pubkey::Pubkey,
     pub oracle: solana_pubkey::Pubkey,
 }
 
@@ -52,9 +52,9 @@ impl carbon_core::deserialize::ArrangeAccounts for SwapV2 {
         let token_vault_a = next_account(&mut iter)?;
         let token_owner_account_b = next_account(&mut iter)?;
         let token_vault_b = next_account(&mut iter)?;
-        let tick_array0 = next_account(&mut iter)?;
-        let tick_array1 = next_account(&mut iter)?;
-        let tick_array2 = next_account(&mut iter)?;
+        let tick_array_0 = next_account(&mut iter)?;
+        let tick_array_1 = next_account(&mut iter)?;
+        let tick_array_2 = next_account(&mut iter)?;
         let oracle = next_account(&mut iter)?;
 
         Some(SwapV2InstructionAccounts {
@@ -69,9 +69,9 @@ impl carbon_core::deserialize::ArrangeAccounts for SwapV2 {
             token_vault_a,
             token_owner_account_b,
             token_vault_b,
-            tick_array0,
-            tick_array1,
-            tick_array2,
+            tick_array_0,
+            tick_array_1,
+            tick_array_2,
             oracle,
         })
     }

@@ -1,12 +1,8 @@
-use alloc::format;
 use carbon_core::{borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
 )]
-pub enum RewardState {
-    Uninitialized,
-    Initialized,
-    Opening,
-    Ended,
+pub enum ConfigFeatureFlag {
+    TokenBadge(bool),
 }

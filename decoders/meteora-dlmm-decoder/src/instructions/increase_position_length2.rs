@@ -1,11 +1,10 @@
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-use carbon_core::{CarbonDeserialize, borsh};
-
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0xffd2cc477389e171")]
-pub struct IncreasePositionLength2{
+pub struct IncreasePositionLength2 {
     pub minimum_upper_bin_id: i32,
 }
 
@@ -23,20 +22,14 @@ pub struct IncreasePositionLength2InstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for IncreasePositionLength2 {
     type ArrangedAccounts = IncreasePositionLength2InstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            funder,
-            lb_pair,
-            position,
-            owner,
-            system_program,
-            event_authority,
-            program,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [funder, lb_pair, position, owner, system_program, event_authority, program, _remaining @ ..] =
+            accounts
+        else {
             return None;
         };
-       
 
         Some(IncreasePositionLength2InstructionAccounts {
             funder: funder.pubkey,

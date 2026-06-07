@@ -1,12 +1,12 @@
-
 use super::super::types::*;
 
-use carbon_core::{CarbonDeserialize, borsh};
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x5c04b0c177b95309")]
-pub struct RebalanceLiquidity{
+pub struct RebalanceLiquidity {
     pub params: RebalanceLiquidityParams,
     pub remaining_accounts_info: RemainingAccountsInfo,
 }
@@ -35,30 +35,14 @@ pub struct RebalanceLiquidityInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for RebalanceLiquidity {
     type ArrangedAccounts = RebalanceLiquidityInstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            position,
-            lb_pair,
-            bin_array_bitmap_extension,
-            user_token_x,
-            user_token_y,
-            reserve_x,
-            reserve_y,
-            token_x_mint,
-            token_y_mint,
-            owner,
-            rent_payer,
-            token_x_program,
-            token_y_program,
-            memo_program,
-            system_program,
-            event_authority,
-            program,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [position, lb_pair, bin_array_bitmap_extension, user_token_x, user_token_y, reserve_x, reserve_y, token_x_mint, token_y_mint, owner, rent_payer, token_x_program, token_y_program, memo_program, system_program, event_authority, program, _remaining @ ..] =
+            accounts
+        else {
             return None;
         };
-       
 
         Some(RebalanceLiquidityInstructionAccounts {
             position: position.pubkey,

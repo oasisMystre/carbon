@@ -1,11 +1,10 @@
+use carbon_core::{borsh, CarbonDeserialize};
 
-
-use carbon_core::{CarbonDeserialize, borsh};
-
-
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x8aaec4a9d5ebfe6b")]
-pub struct UpdateRewardDuration{
+pub struct UpdateRewardDuration {
     pub reward_index: u64,
     pub new_duration: u64,
 }
@@ -22,18 +21,13 @@ pub struct UpdateRewardDurationInstructionAccounts {
 impl carbon_core::deserialize::ArrangeAccounts for UpdateRewardDuration {
     type ArrangedAccounts = UpdateRewardDurationInstructionAccounts;
 
-    fn arrange_accounts(accounts: &[solana_instruction::AccountMeta]) -> Option<Self::ArrangedAccounts> {
-        let [
-            lb_pair,
-            admin,
-            bin_array,
-            event_authority,
-            program,
-            _remaining @ ..
-        ] = accounts else {
+    fn arrange_accounts(
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> Option<Self::ArrangedAccounts> {
+        let [lb_pair, admin, bin_array, event_authority, program, _remaining @ ..] = accounts
+        else {
             return None;
         };
-       
 
         Some(UpdateRewardDurationInstructionAccounts {
             lb_pair: lb_pair.pubkey,

@@ -1,7 +1,6 @@
-use {
-    super::super::types::*,
-    carbon_core::{borsh, CarbonDeserialize},
-};
+use super::super::types::*;
+
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -11,7 +10,7 @@ pub struct InitializeReward {
     pub param: InitializeRewardParam,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct InitializeRewardInstructionAccounts {
     pub reward_funder: solana_pubkey::Pubkey,
     pub funder_token_account: solana_pubkey::Pubkey,
@@ -31,23 +30,29 @@ impl carbon_core::deserialize::ArrangeAccounts for InitializeReward {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [reward_funder, funder_token_account, amm_config, pool_state, operation_state, reward_token_mint, reward_token_vault, reward_token_program, system_program, rent, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let reward_funder = next_account(&mut iter)?;
+        let funder_token_account = next_account(&mut iter)?;
+        let amm_config = next_account(&mut iter)?;
+        let pool_state = next_account(&mut iter)?;
+        let operation_state = next_account(&mut iter)?;
+        let reward_token_mint = next_account(&mut iter)?;
+        let reward_token_vault = next_account(&mut iter)?;
+        let reward_token_program = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
+        let rent = next_account(&mut iter)?;
 
         Some(InitializeRewardInstructionAccounts {
-            reward_funder: reward_funder.pubkey,
-            funder_token_account: funder_token_account.pubkey,
-            amm_config: amm_config.pubkey,
-            pool_state: pool_state.pubkey,
-            operation_state: operation_state.pubkey,
-            reward_token_mint: reward_token_mint.pubkey,
-            reward_token_vault: reward_token_vault.pubkey,
-            reward_token_program: reward_token_program.pubkey,
-            system_program: system_program.pubkey,
-            rent: rent.pubkey,
+            reward_funder,
+            funder_token_account,
+            amm_config,
+            pool_state,
+            operation_state,
+            reward_token_mint,
+            reward_token_vault,
+            reward_token_program,
+            system_program,
+            rent,
         })
     }
 }

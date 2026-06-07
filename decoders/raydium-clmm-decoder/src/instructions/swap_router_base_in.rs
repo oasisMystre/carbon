@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -10,15 +9,14 @@ pub struct SwapRouterBaseIn {
     pub amount_out_minimum: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SwapRouterBaseInInstructionAccounts {
     pub payer: solana_pubkey::Pubkey,
     pub input_token_account: solana_pubkey::Pubkey,
     pub input_token_mint: solana_pubkey::Pubkey,
     pub token_program: solana_pubkey::Pubkey,
-    pub token_program2022: solana_pubkey::Pubkey,
+    pub token_program_2022: solana_pubkey::Pubkey,
     pub memo_program: solana_pubkey::Pubkey,
-    pub remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for SwapRouterBaseIn {
@@ -27,20 +25,21 @@ impl carbon_core::deserialize::ArrangeAccounts for SwapRouterBaseIn {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [payer, input_token_account, input_token_mint, token_program, token_program2022, memo_program, remaining_accounts @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let payer = next_account(&mut iter)?;
+        let input_token_account = next_account(&mut iter)?;
+        let input_token_mint = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
+        let token_program_2022 = next_account(&mut iter)?;
+        let memo_program = next_account(&mut iter)?;
 
         Some(SwapRouterBaseInInstructionAccounts {
-            payer: payer.pubkey,
-            input_token_account: input_token_account.pubkey,
-            input_token_mint: input_token_mint.pubkey,
-            token_program: token_program.pubkey,
-            token_program2022: token_program2022.pubkey,
-            memo_program: memo_program.pubkey,
-            remaining_accounts: remaining_accounts.to_vec(),
+            payer,
+            input_token_account,
+            input_token_mint,
+            token_program,
+            token_program_2022,
+            memo_program,
         })
     }
 }

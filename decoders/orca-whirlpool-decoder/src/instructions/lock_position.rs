@@ -19,7 +19,7 @@ pub struct LockPositionInstructionAccounts {
     pub position_token_account: solana_pubkey::Pubkey,
     pub lock_config: solana_pubkey::Pubkey,
     pub whirlpool: solana_pubkey::Pubkey,
-    pub token2022_program: solana_pubkey::Pubkey,
+    pub token_2022_program: solana_pubkey::Pubkey,
     pub system_program: solana_pubkey::Pubkey,
 }
 
@@ -37,7 +37,7 @@ impl carbon_core::deserialize::ArrangeAccounts for LockPosition {
         let position_token_account = next_account(&mut iter)?;
         let lock_config = next_account(&mut iter)?;
         let whirlpool = next_account(&mut iter)?;
-        let token2022_program = next_account(&mut iter)?;
+        let token_2022_program = next_account(&mut iter)?;
         let system_program = next_account(&mut iter)?;
 
         Some(LockPositionInstructionAccounts {
@@ -48,7 +48,7 @@ impl carbon_core::deserialize::ArrangeAccounts for LockPosition {
             position_token_account,
             lock_config,
             whirlpool,
-            token2022_program,
+            token_2022_program,
             system_program,
         })
     }
