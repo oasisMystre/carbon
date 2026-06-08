@@ -4,4 +4,9 @@ use carbon_core::{borsh, CarbonDeserialize};
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
 )]
 #[carbon(discriminator = "0xe445a52e51cb9a1dedaff3e693756579")]
-pub struct PositionOpenedEvent {}
+pub struct PositionOpenedEvent {
+    pub whirlpool: solana_pubkey::Pubkey,
+    pub position: solana_pubkey::Pubkey,
+    pub tick_lower_index: i32,
+    pub tick_upper_index: i32,
+}
