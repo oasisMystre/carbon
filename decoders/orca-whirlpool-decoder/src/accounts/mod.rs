@@ -1,7 +1,7 @@
 use carbon_core::account::AccountDecoder;
 use carbon_core::deserialize::CarbonDeserialize;
 
-use super::WhirlpoolDecoder;
+use super::OrcaWhirlpoolDecoder;
 pub mod adaptive_fee_tier;
 pub mod dynamic_tick_array;
 pub mod fee_tier;
@@ -15,7 +15,7 @@ pub mod whirlpool;
 pub mod whirlpools_config;
 pub mod whirlpools_config_extension;
 
-pub enum WhirlpoolAccount {
+pub enum OrcaWhirlpoolAccount {
     AdaptiveFeeTier(adaptive_fee_tier::AdaptiveFeeTier),
     DynamicTickArray(dynamic_tick_array::DynamicTickArray),
     FeeTier(fee_tier::FeeTier),
@@ -30,8 +30,8 @@ pub enum WhirlpoolAccount {
     WhirlpoolsConfigExtension(whirlpools_config_extension::WhirlpoolsConfigExtension),
 }
 
-impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
-    type AccountType = WhirlpoolAccount;
+impl<'a> AccountDecoder<'a> for OrcaWhirlpoolDecoder {
+    type AccountType = OrcaWhirlpoolAccount;
     fn decode_account(
         &self,
         account: &solana_account::Account,
@@ -41,7 +41,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::AdaptiveFeeTier(decoded_account),
+                data: OrcaWhirlpoolAccount::AdaptiveFeeTier(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -53,7 +53,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::DynamicTickArray(decoded_account),
+                data: OrcaWhirlpoolAccount::DynamicTickArray(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -63,7 +63,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         if let Some(decoded_account) = fee_tier::FeeTier::deserialize(account.data.as_slice()) {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::FeeTier(decoded_account),
+                data: OrcaWhirlpoolAccount::FeeTier(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -74,7 +74,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::LockConfig(decoded_account),
+                data: OrcaWhirlpoolAccount::LockConfig(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -84,7 +84,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         if let Some(decoded_account) = oracle::Oracle::deserialize(account.data.as_slice()) {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::Oracle(decoded_account),
+                data: OrcaWhirlpoolAccount::Oracle(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -94,7 +94,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         if let Some(decoded_account) = position::Position::deserialize(account.data.as_slice()) {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::Position(decoded_account),
+                data: OrcaWhirlpoolAccount::Position(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -106,7 +106,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::PositionBundle(decoded_account),
+                data: OrcaWhirlpoolAccount::PositionBundle(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -116,7 +116,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         if let Some(decoded_account) = tick_array::TickArray::deserialize(account.data.as_slice()) {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::TickArray(decoded_account),
+                data: OrcaWhirlpoolAccount::TickArray(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -127,7 +127,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::TokenBadge(decoded_account),
+                data: OrcaWhirlpoolAccount::TokenBadge(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -137,7 +137,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         if let Some(decoded_account) = whirlpool::Whirlpool::deserialize(account.data.as_slice()) {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::Whirlpool(decoded_account),
+                data: OrcaWhirlpoolAccount::Whirlpool(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -149,7 +149,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::WhirlpoolsConfig(decoded_account),
+                data: OrcaWhirlpoolAccount::WhirlpoolsConfig(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
@@ -163,7 +163,7 @@ impl<'a> AccountDecoder<'a> for WhirlpoolDecoder {
         {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: WhirlpoolAccount::WhirlpoolsConfigExtension(decoded_account),
+                data: OrcaWhirlpoolAccount::WhirlpoolsConfigExtension(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
