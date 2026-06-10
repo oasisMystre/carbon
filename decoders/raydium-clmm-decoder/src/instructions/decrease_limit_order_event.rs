@@ -3,7 +3,7 @@ use carbon_core::{borsh, CarbonDeserialize};
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
 )]
-#[carbon(discriminator = "0xe445a52e51cb9a1d463028dddbedd4a3")]
+#[carbon(discriminator = "0x463028dddbedd4a3")]
 pub struct DecreaseLimitOrderEvent {
     pub pool_id: solana_pubkey::Pubkey,
     pub limit_order: solana_pubkey::Pubkey,

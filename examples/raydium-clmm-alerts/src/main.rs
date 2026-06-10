@@ -195,6 +195,48 @@ impl Processor for RaydiumClmmInstructionProcessor {
             RaydiumClmmInstruction::OpenPositionWithToken22Nft(open_position_with_token22_nft) => {
                 log::info!("OpenPositionWithToken22Nft: signature: {signature}, open_position_with_token22_nft: {open_position_with_token22_nft:?}");
             }
+            RaydiumClmmInstruction::CloseLimitOrder(close_limit_order) => {
+                log::info!("CloseLimitOrder: signature: {signature}, close_limit_order: {close_limit_order:?}");
+            }
+            RaydiumClmmInstruction::CloseProtocolPosition(close_protocol_position) => {
+                log::info!("CloseProtocolPosition: signature: {signature}, close_protocol_position: {close_protocol_position:?}");
+            }
+            RaydiumClmmInstruction::CreateCustomizablePool(create_customizable_pool) => {
+                log::info!("CreateCustomizablePool: signature: {signature}, create_customizable_pool: {create_customizable_pool:?}");
+            }
+            RaydiumClmmInstruction::CreateDynamicFeeConfig(create_dynamic_fee_config) => {
+                log::info!("CreateDynamicFeeConfig: signature: {signature}, create_dynamic_fee_config: {create_dynamic_fee_config:?}");
+            }
+            RaydiumClmmInstruction::CreateSupportMintAssociated(create_support_mint_associated) => {
+                log::info!("CreateSupportMintAssociated: signature: {signature}, create_support_mint_associated: {create_support_mint_associated:?}");
+            }
+            RaydiumClmmInstruction::DecreaseLimitOrder(decrease_limit_order) => {
+                log::info!("DecreaseLimitOrder: signature: {signature}, decrease_limit_order: {decrease_limit_order:?}");
+            }
+            RaydiumClmmInstruction::IncreaseLimitOrder(increase_limit_order) => {
+                log::info!("IncreaseLimitOrder: signature: {signature}, increase_limit_order: {increase_limit_order:?}");
+            }
+            RaydiumClmmInstruction::OpenLimitOrder(open_limit_order) => {
+                log::info!("OpenLimitOrder: signature: {signature}, open_limit_order: {open_limit_order:?}");
+            }
+            RaydiumClmmInstruction::SettleLimitOrder(settle_limit_order) => {
+                log::info!("SettleLimitOrder: signature: {signature}, settle_limit_order: {settle_limit_order:?}");
+            }
+            RaydiumClmmInstruction::UpdateDynamicFeeConfig(update_dynamic_fee_config) => {
+                log::info!("UpdateDynamicFeeConfig: signature: {signature}, update_dynamic_fee_config: {update_dynamic_fee_config:?}");
+            }
+            RaydiumClmmInstruction::DecreaseLimitOrderEvent(decrease_limit_order_event) => {
+                log::info!("DecreaseLimitOrderEvent: signature: {signature}, decrease_limit_order_event: {decrease_limit_order_event:?}");
+            }
+            RaydiumClmmInstruction::IncreaseLimitOrderEvent(increase_limit_order_event) => {
+                log::info!("IncreaseLimitOrderEvent: signature: {signature}, increase_limit_order_event: {increase_limit_order_event:?}");
+            }
+            RaydiumClmmInstruction::OpenLimitOrderEvent(open_limit_order_event) => {
+                log::info!("OpenLimitOrderEvent: signature: {signature}, open_limit_order_event: {open_limit_order_event:?}");
+            }
+            RaydiumClmmInstruction::SettleLimitOrderEvent(settle_limit_order_event) => {
+                log::info!("SettleLimitOrderEvent: signature: {signature}, settle_limit_order_event: {settle_limit_order_event:?}");
+            }
         };
 
         Ok(())

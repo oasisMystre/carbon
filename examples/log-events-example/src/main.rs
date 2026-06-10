@@ -21,7 +21,9 @@ use {
         time::Duration,
     },
     tokio::sync::RwLock,
-    yellowstone_grpc_proto::geyser::{CommitmentLevel, SubscribeRequestFilterTransactions},
+    yellowstone_grpc_proto::geyser::{
+        CommitmentLevel, SubscribeRequest, SubscribeRequestFilterTransactions,
+    },
 };
 
 #[tokio::main]
@@ -60,15 +62,20 @@ pub async fn main() -> CarbonResult<()> {
         None,
     );
 
+    let subscribe_request = SubscribeRequest {
+        accounts: HashMap::default(),
+        transactions: transaction_filters,
+        commitment: Some(CommitmentLevel::Confirmed as i32),
+        ..Default::default()
+    };
+
     let yellowstone_grpc = YellowstoneGrpcGeyserClient::new(
         env::var("GEYSER_URL").unwrap_or_default(),
         env::var("X_TOKEN").ok(),
-        Some(CommitmentLevel::Confirmed),
-        HashMap::default(),
-        transaction_filters,
-        Default::default(),
+        subscribe_request,
         Arc::new(RwLock::new(HashSet::new())),
         geyser_config,
+        None,
         None,
         None,
     );
