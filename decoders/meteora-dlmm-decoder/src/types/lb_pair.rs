@@ -38,5 +38,6 @@ pub struct LbPair {
     pub creator: solana_pubkey::Pubkey,
     pub token_mint_x_program_flag: u8,
     pub token_mint_y_program_flag: u8,
-    pub reserved: [u8; 22],
+    pub version: u8,
+    pub reserved: [u8; 21],
 }

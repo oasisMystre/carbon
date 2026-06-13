@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -11,7 +11,7 @@ pub struct SetPreActivationDuration {
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SetPreActivationDurationInstructionAccounts {
     pub lb_pair: solana_pubkey::Pubkey,
-    pub creator: solana_pubkey::Pubkey,
+    pub signer: solana_pubkey::Pubkey,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for SetPreActivationDuration {
@@ -20,13 +20,10 @@ impl carbon_core::deserialize::ArrangeAccounts for SetPreActivationDuration {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, creator, _remaining @ ..] = accounts else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let signer = next_account(&mut iter)?;
 
-        Some(SetPreActivationDurationInstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            creator: creator.pubkey,
-        })
+        Some(SetPreActivationDurationInstructionAccounts { lb_pair, signer })
     }
 }

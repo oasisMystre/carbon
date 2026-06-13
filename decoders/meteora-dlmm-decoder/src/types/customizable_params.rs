@@ -12,6 +12,8 @@ pub struct CustomizableParams {
     pub activation_point: Option<u64>,
     pub creator_pool_on_off_control: bool,
     pub base_fee_power_factor: u8,
+    pub concrete_function_type: u8,
+    pub collect_fee_mode: u8,
     #[serde(with = "serde_big_array::BigArray")]
-    pub padding: [u8; 62],
+    pub padding: [u8; 60],
 }

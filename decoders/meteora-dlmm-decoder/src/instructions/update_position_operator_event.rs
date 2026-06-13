@@ -1,5 +1,3 @@
-use solana_pubkey::Pubkey;
-
 use carbon_core::{borsh, CarbonDeserialize};
 
 #[derive(
@@ -7,7 +5,7 @@ use carbon_core::{borsh, CarbonDeserialize};
 )]
 #[carbon(discriminator = "0xe445a52e51cb9a1d277330ccf62f4239")]
 pub struct UpdatePositionOperatorEvent {
-    pub position: Pubkey,
-    pub old_operator: Pubkey,
-    pub new_operator: Pubkey,
+    pub position: solana_pubkey::Pubkey,
+    pub old_operator: solana_pubkey::Pubkey,
+    pub new_operator: solana_pubkey::Pubkey,
 }

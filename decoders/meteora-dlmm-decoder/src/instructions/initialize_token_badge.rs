@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -10,7 +10,9 @@ pub struct InitializeTokenBadge {}
 pub struct InitializeTokenBadgeInstructionAccounts {
     pub token_mint: solana_pubkey::Pubkey,
     pub token_badge: solana_pubkey::Pubkey,
-    pub admin: solana_pubkey::Pubkey,
+    pub operator: solana_pubkey::Pubkey,
+    pub signer: solana_pubkey::Pubkey,
+    pub payer: solana_pubkey::Pubkey,
     pub system_program: solana_pubkey::Pubkey,
 }
 
@@ -20,15 +22,21 @@ impl carbon_core::deserialize::ArrangeAccounts for InitializeTokenBadge {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [token_mint, token_badge, admin, system_program, _remaining @ ..] = accounts else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let token_mint = next_account(&mut iter)?;
+        let token_badge = next_account(&mut iter)?;
+        let operator = next_account(&mut iter)?;
+        let signer = next_account(&mut iter)?;
+        let payer = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
 
         Some(InitializeTokenBadgeInstructionAccounts {
-            token_mint: token_mint.pubkey,
-            token_badge: token_badge.pubkey,
-            admin: admin.pubkey,
-            system_program: system_program.pubkey,
+            token_mint,
+            token_badge,
+            operator,
+            signer,
+            payer,
+            system_program,
         })
     }
 }

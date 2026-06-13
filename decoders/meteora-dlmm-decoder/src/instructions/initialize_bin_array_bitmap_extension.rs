@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -21,18 +21,19 @@ impl carbon_core::deserialize::ArrangeAccounts for InitializeBinArrayBitmapExten
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, bin_array_bitmap_extension, funder, system_program, rent, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let bin_array_bitmap_extension = next_account(&mut iter)?;
+        let funder = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
+        let rent = next_account(&mut iter)?;
 
         Some(InitializeBinArrayBitmapExtensionInstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            bin_array_bitmap_extension: bin_array_bitmap_extension.pubkey,
-            funder: funder.pubkey,
-            system_program: system_program.pubkey,
-            rent: rent.pubkey,
+            lb_pair,
+            bin_array_bitmap_extension,
+            funder,
+            system_program,
+            rent,
         })
     }
 }

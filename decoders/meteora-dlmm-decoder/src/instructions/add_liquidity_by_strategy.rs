@@ -1,6 +1,6 @@
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -36,29 +36,41 @@ impl carbon_core::deserialize::ArrangeAccounts for AddLiquidityByStrategy {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [position, lb_pair, bin_array_bitmap_extension, user_token_x, user_token_y, reserve_x, reserve_y, token_x_mint, token_y_mint, bin_array_lower, bin_array_upper, sender, token_x_program, token_y_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let position = next_account(&mut iter)?;
+        let lb_pair = next_account(&mut iter)?;
+        let bin_array_bitmap_extension = next_account(&mut iter)?;
+        let user_token_x = next_account(&mut iter)?;
+        let user_token_y = next_account(&mut iter)?;
+        let reserve_x = next_account(&mut iter)?;
+        let reserve_y = next_account(&mut iter)?;
+        let token_x_mint = next_account(&mut iter)?;
+        let token_y_mint = next_account(&mut iter)?;
+        let bin_array_lower = next_account(&mut iter)?;
+        let bin_array_upper = next_account(&mut iter)?;
+        let sender = next_account(&mut iter)?;
+        let token_x_program = next_account(&mut iter)?;
+        let token_y_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(AddLiquidityByStrategyInstructionAccounts {
-            position: position.pubkey,
-            lb_pair: lb_pair.pubkey,
-            bin_array_bitmap_extension: bin_array_bitmap_extension.pubkey,
-            user_token_x: user_token_x.pubkey,
-            user_token_y: user_token_y.pubkey,
-            reserve_x: reserve_x.pubkey,
-            reserve_y: reserve_y.pubkey,
-            token_x_mint: token_x_mint.pubkey,
-            token_y_mint: token_y_mint.pubkey,
-            bin_array_lower: bin_array_lower.pubkey,
-            bin_array_upper: bin_array_upper.pubkey,
-            sender: sender.pubkey,
-            token_x_program: token_x_program.pubkey,
-            token_y_program: token_y_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            position,
+            lb_pair,
+            bin_array_bitmap_extension,
+            user_token_x,
+            user_token_y,
+            reserve_x,
+            reserve_y,
+            token_x_mint,
+            token_y_mint,
+            bin_array_lower,
+            bin_array_upper,
+            sender,
+            token_x_program,
+            token_y_program,
+            event_authority,
+            program,
         })
     }
 }

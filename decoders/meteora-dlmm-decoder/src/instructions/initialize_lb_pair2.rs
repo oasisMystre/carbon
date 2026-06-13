@@ -1,6 +1,6 @@
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -36,29 +36,41 @@ impl carbon_core::deserialize::ArrangeAccounts for InitializeLbPair2 {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, bin_array_bitmap_extension, token_mint_x, token_mint_y, reserve_x, reserve_y, oracle, preset_parameter, funder, token_badge_x, token_badge_y, token_program_x, token_program_y, system_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let bin_array_bitmap_extension = next_account(&mut iter)?;
+        let token_mint_x = next_account(&mut iter)?;
+        let token_mint_y = next_account(&mut iter)?;
+        let reserve_x = next_account(&mut iter)?;
+        let reserve_y = next_account(&mut iter)?;
+        let oracle = next_account(&mut iter)?;
+        let preset_parameter = next_account(&mut iter)?;
+        let funder = next_account(&mut iter)?;
+        let token_badge_x = next_account(&mut iter)?;
+        let token_badge_y = next_account(&mut iter)?;
+        let token_program_x = next_account(&mut iter)?;
+        let token_program_y = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(InitializeLbPair2InstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            bin_array_bitmap_extension: bin_array_bitmap_extension.pubkey,
-            token_mint_x: token_mint_x.pubkey,
-            token_mint_y: token_mint_y.pubkey,
-            reserve_x: reserve_x.pubkey,
-            reserve_y: reserve_y.pubkey,
-            oracle: oracle.pubkey,
-            preset_parameter: preset_parameter.pubkey,
-            funder: funder.pubkey,
-            token_badge_x: token_badge_x.pubkey,
-            token_badge_y: token_badge_y.pubkey,
-            token_program_x: token_program_x.pubkey,
-            token_program_y: token_program_y.pubkey,
-            system_program: system_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            lb_pair,
+            bin_array_bitmap_extension,
+            token_mint_x,
+            token_mint_y,
+            reserve_x,
+            reserve_y,
+            oracle,
+            preset_parameter,
+            funder,
+            token_badge_x,
+            token_badge_y,
+            token_program_x,
+            token_program_y,
+            system_program,
+            event_authority,
+            program,
         })
     }
 }

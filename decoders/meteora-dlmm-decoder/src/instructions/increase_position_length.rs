@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -26,20 +26,23 @@ impl carbon_core::deserialize::ArrangeAccounts for IncreasePositionLength {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [funder, lb_pair, position, owner, system_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let funder = next_account(&mut iter)?;
+        let lb_pair = next_account(&mut iter)?;
+        let position = next_account(&mut iter)?;
+        let owner = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(IncreasePositionLengthInstructionAccounts {
-            funder: funder.pubkey,
-            lb_pair: lb_pair.pubkey,
-            position: position.pubkey,
-            owner: owner.pubkey,
-            system_program: system_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            funder,
+            lb_pair,
+            position,
+            owner,
+            system_program,
+            event_authority,
+            program,
         })
     }
 }

@@ -5,10 +5,13 @@ pub mod add_liquidity_by_strategy;
 pub mod add_liquidity_by_strategy2;
 pub mod add_liquidity_by_strategy_one_side;
 pub mod add_liquidity_by_weight;
+pub mod add_liquidity_by_weight2;
 pub mod add_liquidity_event;
 pub mod add_liquidity_one_side;
 pub mod add_liquidity_one_side_precise;
 pub mod add_liquidity_one_side_precise2;
+pub mod cancel_limit_order;
+pub mod cancel_limit_order_evt_event;
 pub mod claim_fee;
 pub mod claim_fee2;
 pub mod claim_fee2_event;
@@ -17,7 +20,11 @@ pub mod claim_reward;
 pub mod claim_reward2;
 pub mod claim_reward2_event;
 pub mod claim_reward_event;
-pub mod close_claim_protocol_fee_operator;
+pub mod close_bin_array;
+pub mod close_claim_fee_operator_account;
+pub mod close_limit_order_evt_event;
+pub mod close_limit_order_if_empty;
+pub mod close_operator_account;
 pub mod close_position;
 pub mod close_position2;
 pub mod close_position_if_empty;
@@ -25,7 +32,7 @@ pub mod close_preset_parameter;
 pub mod close_preset_parameter2;
 pub mod close_token_badge;
 pub mod composition_fee_event;
-pub mod create_claim_protocol_fee_operator;
+pub mod create_operator_account;
 pub mod decrease_position_length;
 pub mod decrease_position_length_event;
 pub mod dynamic_fee_parameter_update_event;
@@ -52,13 +59,12 @@ pub mod initialize_position2;
 pub mod initialize_position_by_operator;
 pub mod initialize_position_pda;
 pub mod initialize_preset_parameter;
-pub mod initialize_preset_parameter2;
 pub mod initialize_reward;
 pub mod initialize_reward_event;
 pub mod initialize_token_badge;
 pub mod lb_pair_create_event;
-pub mod migrate_bin_array;
-pub mod migrate_position;
+pub mod place_limit_order;
+pub mod place_limit_order_evt_event;
 pub mod position_close_event;
 pub mod position_create_event;
 pub mod rebalance_liquidity;
@@ -72,10 +78,13 @@ pub mod remove_liquidity_event;
 pub mod set_activation_point;
 pub mod set_pair_status;
 pub mod set_pair_status_permissionless;
+pub mod set_permissionless_operation_bits;
+pub mod set_position_permissionless_operation_bits_evt_event;
 pub mod set_pre_activation_duration;
 pub mod set_pre_activation_swap_address;
 pub mod swap;
 pub mod swap2;
+pub mod swap2_evt_event;
 pub mod swap_event;
 pub mod swap_exact_out;
 pub mod swap_exact_out2;
@@ -95,6 +104,7 @@ pub mod update_reward_funder_event;
 pub mod withdraw_ineligible_reward;
 pub mod withdraw_ineligible_reward_event;
 pub mod withdraw_protocol_fee;
+pub mod zap_protocol_fee;
 
 #[derive(
     carbon_core::InstructionType,
@@ -113,21 +123,26 @@ pub enum MeteoraDlmmInstruction {
     AddLiquidityByStrategy2(add_liquidity_by_strategy2::AddLiquidityByStrategy2),
     AddLiquidityByStrategyOneSide(add_liquidity_by_strategy_one_side::AddLiquidityByStrategyOneSide),
     AddLiquidityByWeight(add_liquidity_by_weight::AddLiquidityByWeight),
+    AddLiquidityByWeight2(add_liquidity_by_weight2::AddLiquidityByWeight2),
     AddLiquidityOneSide(add_liquidity_one_side::AddLiquidityOneSide),
     AddLiquidityOneSidePrecise(add_liquidity_one_side_precise::AddLiquidityOneSidePrecise),
     AddLiquidityOneSidePrecise2(add_liquidity_one_side_precise2::AddLiquidityOneSidePrecise2),
+    CancelLimitOrder(cancel_limit_order::CancelLimitOrder),
     ClaimFee(claim_fee::ClaimFee),
     ClaimFee2(claim_fee2::ClaimFee2),
     ClaimReward(claim_reward::ClaimReward),
     ClaimReward2(claim_reward2::ClaimReward2),
-    CloseClaimProtocolFeeOperator(close_claim_protocol_fee_operator::CloseClaimProtocolFeeOperator),
+    CloseBinArray(close_bin_array::CloseBinArray),
+    CloseClaimFeeOperatorAccount(close_claim_fee_operator_account::CloseClaimFeeOperatorAccount),
+    CloseLimitOrderIfEmpty(close_limit_order_if_empty::CloseLimitOrderIfEmpty),
+    CloseOperatorAccount(close_operator_account::CloseOperatorAccount),
     ClosePosition(close_position::ClosePosition),
     ClosePosition2(close_position2::ClosePosition2),
     ClosePositionIfEmpty(close_position_if_empty::ClosePositionIfEmpty),
     ClosePresetParameter(close_preset_parameter::ClosePresetParameter),
     ClosePresetParameter2(close_preset_parameter2::ClosePresetParameter2),
     CloseTokenBadge(close_token_badge::CloseTokenBadge),
-    CreateClaimProtocolFeeOperator(create_claim_protocol_fee_operator::CreateClaimProtocolFeeOperator),
+    CreateOperatorAccount(create_operator_account::CreateOperatorAccount),
     DecreasePositionLength(decrease_position_length::DecreasePositionLength),
     ForIdlTypeGenerationDoNotCall(for_idl_type_generation_do_not_call::ForIdlTypeGenerationDoNotCall),
     FundReward(fund_reward::FundReward),
@@ -147,11 +162,9 @@ pub enum MeteoraDlmmInstruction {
     InitializePositionByOperator(initialize_position_by_operator::InitializePositionByOperator),
     InitializePositionPda(initialize_position_pda::InitializePositionPda),
     InitializePresetParameter(initialize_preset_parameter::InitializePresetParameter),
-    InitializePresetParameter2(initialize_preset_parameter2::InitializePresetParameter2),
     InitializeReward(initialize_reward::InitializeReward),
     InitializeTokenBadge(initialize_token_badge::InitializeTokenBadge),
-    MigrateBinArray(migrate_bin_array::MigrateBinArray),
-    MigratePosition(migrate_position::MigratePosition),
+    PlaceLimitOrder(place_limit_order::PlaceLimitOrder),
     RebalanceLiquidity(rebalance_liquidity::RebalanceLiquidity),
     RemoveAllLiquidity(remove_all_liquidity::RemoveAllLiquidity),
     RemoveLiquidity(remove_liquidity::RemoveLiquidity),
@@ -161,6 +174,7 @@ pub enum MeteoraDlmmInstruction {
     SetActivationPoint(set_activation_point::SetActivationPoint),
     SetPairStatus(set_pair_status::SetPairStatus),
     SetPairStatusPermissionless(set_pair_status_permissionless::SetPairStatusPermissionless),
+    SetPermissionlessOperationBits(set_permissionless_operation_bits::SetPermissionlessOperationBits),
     SetPreActivationDuration(set_pre_activation_duration::SetPreActivationDuration),
     SetPreActivationSwapAddress(set_pre_activation_swap_address::SetPreActivationSwapAddress),
     Swap(swap::Swap),
@@ -178,11 +192,14 @@ pub enum MeteoraDlmmInstruction {
     UpdateRewardFunder(update_reward_funder::UpdateRewardFunder),
     WithdrawIneligibleReward(withdraw_ineligible_reward::WithdrawIneligibleReward),
     WithdrawProtocolFee(withdraw_protocol_fee::WithdrawProtocolFee),
+    ZapProtocolFee(zap_protocol_fee::ZapProtocolFee),
     AddLiquidityEvent(add_liquidity_event::AddLiquidityEvent),
+    CancelLimitOrderEvtEvent(cancel_limit_order_evt_event::CancelLimitOrderEvtEvent),
     ClaimFeeEvent(claim_fee_event::ClaimFeeEvent),
     ClaimFee2Event(claim_fee2_event::ClaimFee2Event),
     ClaimRewardEvent(claim_reward_event::ClaimRewardEvent),
     ClaimReward2Event(claim_reward2_event::ClaimReward2Event),
+    CloseLimitOrderEvtEvent(close_limit_order_evt_event::CloseLimitOrderEvtEvent),
     CompositionFeeEvent(composition_fee_event::CompositionFeeEvent),
     DecreasePositionLengthEvent(decrease_position_length_event::DecreasePositionLengthEvent),
     DynamicFeeParameterUpdateEvent(dynamic_fee_parameter_update_event::DynamicFeeParameterUpdateEvent),
@@ -193,11 +210,14 @@ pub enum MeteoraDlmmInstruction {
     IncreasePositionLengthEvent(increase_position_length_event::IncreasePositionLengthEvent),
     InitializeRewardEvent(initialize_reward_event::InitializeRewardEvent),
     LbPairCreateEvent(lb_pair_create_event::LbPairCreateEvent),
+    PlaceLimitOrderEvtEvent(place_limit_order_evt_event::PlaceLimitOrderEvtEvent),
     PositionCloseEvent(position_close_event::PositionCloseEvent),
     PositionCreateEvent(position_create_event::PositionCreateEvent),
     RebalancingEvent(rebalancing_event::RebalancingEvent),
     RemoveLiquidityEvent(remove_liquidity_event::RemoveLiquidityEvent),
+    SetPositionPermissionlessOperationBitsEvtEvent(set_position_permissionless_operation_bits_evt_event::SetPositionPermissionlessOperationBitsEvtEvent),
     SwapEvent(swap_event::SwapEvent),
+    Swap2EvtEvent(swap2_evt_event::Swap2EvtEvent),
     UpdatePositionLockReleasePointEvent(update_position_lock_release_point_event::UpdatePositionLockReleasePointEvent),
     UpdatePositionOperatorEvent(update_position_operator_event::UpdatePositionOperatorEvent),
     UpdateRewardDurationEvent(update_reward_duration_event::UpdateRewardDurationEvent),
@@ -219,21 +239,26 @@ impl<'a> carbon_core::instruction::InstructionDecoder<'a> for MeteoraDlmmDecoder
             MeteoraDlmmInstruction::AddLiquidityByStrategy2 => add_liquidity_by_strategy2::AddLiquidityByStrategy2,
             MeteoraDlmmInstruction::AddLiquidityByStrategyOneSide => add_liquidity_by_strategy_one_side::AddLiquidityByStrategyOneSide,
             MeteoraDlmmInstruction::AddLiquidityByWeight => add_liquidity_by_weight::AddLiquidityByWeight,
+            MeteoraDlmmInstruction::AddLiquidityByWeight2 => add_liquidity_by_weight2::AddLiquidityByWeight2,
             MeteoraDlmmInstruction::AddLiquidityOneSide => add_liquidity_one_side::AddLiquidityOneSide,
             MeteoraDlmmInstruction::AddLiquidityOneSidePrecise => add_liquidity_one_side_precise::AddLiquidityOneSidePrecise,
             MeteoraDlmmInstruction::AddLiquidityOneSidePrecise2 => add_liquidity_one_side_precise2::AddLiquidityOneSidePrecise2,
+            MeteoraDlmmInstruction::CancelLimitOrder => cancel_limit_order::CancelLimitOrder,
             MeteoraDlmmInstruction::ClaimFee => claim_fee::ClaimFee,
             MeteoraDlmmInstruction::ClaimFee2 => claim_fee2::ClaimFee2,
             MeteoraDlmmInstruction::ClaimReward => claim_reward::ClaimReward,
             MeteoraDlmmInstruction::ClaimReward2 => claim_reward2::ClaimReward2,
-            MeteoraDlmmInstruction::CloseClaimProtocolFeeOperator => close_claim_protocol_fee_operator::CloseClaimProtocolFeeOperator,
+            MeteoraDlmmInstruction::CloseBinArray => close_bin_array::CloseBinArray,
+            MeteoraDlmmInstruction::CloseClaimFeeOperatorAccount => close_claim_fee_operator_account::CloseClaimFeeOperatorAccount,
+            MeteoraDlmmInstruction::CloseLimitOrderIfEmpty => close_limit_order_if_empty::CloseLimitOrderIfEmpty,
+            MeteoraDlmmInstruction::CloseOperatorAccount => close_operator_account::CloseOperatorAccount,
             MeteoraDlmmInstruction::ClosePosition => close_position::ClosePosition,
             MeteoraDlmmInstruction::ClosePosition2 => close_position2::ClosePosition2,
             MeteoraDlmmInstruction::ClosePositionIfEmpty => close_position_if_empty::ClosePositionIfEmpty,
             MeteoraDlmmInstruction::ClosePresetParameter => close_preset_parameter::ClosePresetParameter,
             MeteoraDlmmInstruction::ClosePresetParameter2 => close_preset_parameter2::ClosePresetParameter2,
             MeteoraDlmmInstruction::CloseTokenBadge => close_token_badge::CloseTokenBadge,
-            MeteoraDlmmInstruction::CreateClaimProtocolFeeOperator => create_claim_protocol_fee_operator::CreateClaimProtocolFeeOperator,
+            MeteoraDlmmInstruction::CreateOperatorAccount => create_operator_account::CreateOperatorAccount,
             MeteoraDlmmInstruction::DecreasePositionLength => decrease_position_length::DecreasePositionLength,
             MeteoraDlmmInstruction::ForIdlTypeGenerationDoNotCall => for_idl_type_generation_do_not_call::ForIdlTypeGenerationDoNotCall,
             MeteoraDlmmInstruction::FundReward => fund_reward::FundReward,
@@ -253,11 +278,9 @@ impl<'a> carbon_core::instruction::InstructionDecoder<'a> for MeteoraDlmmDecoder
             MeteoraDlmmInstruction::InitializePositionByOperator => initialize_position_by_operator::InitializePositionByOperator,
             MeteoraDlmmInstruction::InitializePositionPda => initialize_position_pda::InitializePositionPda,
             MeteoraDlmmInstruction::InitializePresetParameter => initialize_preset_parameter::InitializePresetParameter,
-            MeteoraDlmmInstruction::InitializePresetParameter2 => initialize_preset_parameter2::InitializePresetParameter2,
             MeteoraDlmmInstruction::InitializeReward => initialize_reward::InitializeReward,
             MeteoraDlmmInstruction::InitializeTokenBadge => initialize_token_badge::InitializeTokenBadge,
-            MeteoraDlmmInstruction::MigrateBinArray => migrate_bin_array::MigrateBinArray,
-            MeteoraDlmmInstruction::MigratePosition => migrate_position::MigratePosition,
+            MeteoraDlmmInstruction::PlaceLimitOrder => place_limit_order::PlaceLimitOrder,
             MeteoraDlmmInstruction::RebalanceLiquidity => rebalance_liquidity::RebalanceLiquidity,
             MeteoraDlmmInstruction::RemoveAllLiquidity => remove_all_liquidity::RemoveAllLiquidity,
             MeteoraDlmmInstruction::RemoveLiquidity => remove_liquidity::RemoveLiquidity,
@@ -267,6 +290,7 @@ impl<'a> carbon_core::instruction::InstructionDecoder<'a> for MeteoraDlmmDecoder
             MeteoraDlmmInstruction::SetActivationPoint => set_activation_point::SetActivationPoint,
             MeteoraDlmmInstruction::SetPairStatus => set_pair_status::SetPairStatus,
             MeteoraDlmmInstruction::SetPairStatusPermissionless => set_pair_status_permissionless::SetPairStatusPermissionless,
+            MeteoraDlmmInstruction::SetPermissionlessOperationBits => set_permissionless_operation_bits::SetPermissionlessOperationBits,
             MeteoraDlmmInstruction::SetPreActivationDuration => set_pre_activation_duration::SetPreActivationDuration,
             MeteoraDlmmInstruction::SetPreActivationSwapAddress => set_pre_activation_swap_address::SetPreActivationSwapAddress,
             MeteoraDlmmInstruction::Swap => swap::Swap,
@@ -284,11 +308,14 @@ impl<'a> carbon_core::instruction::InstructionDecoder<'a> for MeteoraDlmmDecoder
             MeteoraDlmmInstruction::UpdateRewardFunder => update_reward_funder::UpdateRewardFunder,
             MeteoraDlmmInstruction::WithdrawIneligibleReward => withdraw_ineligible_reward::WithdrawIneligibleReward,
             MeteoraDlmmInstruction::WithdrawProtocolFee => withdraw_protocol_fee::WithdrawProtocolFee,
+            MeteoraDlmmInstruction::ZapProtocolFee => zap_protocol_fee::ZapProtocolFee,
             MeteoraDlmmInstruction::AddLiquidityEvent => add_liquidity_event::AddLiquidityEvent,
+            MeteoraDlmmInstruction::CancelLimitOrderEvtEvent => cancel_limit_order_evt_event::CancelLimitOrderEvtEvent,
             MeteoraDlmmInstruction::ClaimFeeEvent => claim_fee_event::ClaimFeeEvent,
             MeteoraDlmmInstruction::ClaimFee2Event => claim_fee2_event::ClaimFee2Event,
             MeteoraDlmmInstruction::ClaimRewardEvent => claim_reward_event::ClaimRewardEvent,
             MeteoraDlmmInstruction::ClaimReward2Event => claim_reward2_event::ClaimReward2Event,
+            MeteoraDlmmInstruction::CloseLimitOrderEvtEvent => close_limit_order_evt_event::CloseLimitOrderEvtEvent,
             MeteoraDlmmInstruction::CompositionFeeEvent => composition_fee_event::CompositionFeeEvent,
             MeteoraDlmmInstruction::DecreasePositionLengthEvent => decrease_position_length_event::DecreasePositionLengthEvent,
             MeteoraDlmmInstruction::DynamicFeeParameterUpdateEvent => dynamic_fee_parameter_update_event::DynamicFeeParameterUpdateEvent,
@@ -299,11 +326,14 @@ impl<'a> carbon_core::instruction::InstructionDecoder<'a> for MeteoraDlmmDecoder
             MeteoraDlmmInstruction::IncreasePositionLengthEvent => increase_position_length_event::IncreasePositionLengthEvent,
             MeteoraDlmmInstruction::InitializeRewardEvent => initialize_reward_event::InitializeRewardEvent,
             MeteoraDlmmInstruction::LbPairCreateEvent => lb_pair_create_event::LbPairCreateEvent,
+            MeteoraDlmmInstruction::PlaceLimitOrderEvtEvent => place_limit_order_evt_event::PlaceLimitOrderEvtEvent,
             MeteoraDlmmInstruction::PositionCloseEvent => position_close_event::PositionCloseEvent,
             MeteoraDlmmInstruction::PositionCreateEvent => position_create_event::PositionCreateEvent,
             MeteoraDlmmInstruction::RebalancingEvent => rebalancing_event::RebalancingEvent,
             MeteoraDlmmInstruction::RemoveLiquidityEvent => remove_liquidity_event::RemoveLiquidityEvent,
+            MeteoraDlmmInstruction::SetPositionPermissionlessOperationBitsEvtEvent => set_position_permissionless_operation_bits_evt_event::SetPositionPermissionlessOperationBitsEvtEvent,
             MeteoraDlmmInstruction::SwapEvent => swap_event::SwapEvent,
+            MeteoraDlmmInstruction::Swap2EvtEvent => swap2_evt_event::Swap2EvtEvent,
             MeteoraDlmmInstruction::UpdatePositionLockReleasePointEvent => update_position_lock_release_point_event::UpdatePositionLockReleasePointEvent,
             MeteoraDlmmInstruction::UpdatePositionOperatorEvent => update_position_operator_event::UpdatePositionOperatorEvent,
             MeteoraDlmmInstruction::UpdateRewardDurationEvent => update_reward_duration_event::UpdateRewardDurationEvent,

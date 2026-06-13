@@ -1,6 +1,8 @@
 use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0xabec9473a271deae")]
 pub struct PresetParameter2 {
     pub bin_step: u16,
@@ -13,6 +15,8 @@ pub struct PresetParameter2 {
     pub protocol_share: u16,
     pub index: u16,
     pub base_fee_power_factor: u8,
-    pub padding_0: u8,
-    pub padding_1: [u64; 20],
+    pub concrete_function_type: u8,
+    pub collect_fee_mode: u8,
+    pub padding_0: [u8; 7],
+    pub padding_1: [u64; 19],
 }

@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -11,7 +11,7 @@ pub struct SetActivationPoint {
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SetActivationPointInstructionAccounts {
     pub lb_pair: solana_pubkey::Pubkey,
-    pub admin: solana_pubkey::Pubkey,
+    pub signer: solana_pubkey::Pubkey,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for SetActivationPoint {
@@ -20,13 +20,10 @@ impl carbon_core::deserialize::ArrangeAccounts for SetActivationPoint {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, admin, _remaining @ ..] = accounts else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let signer = next_account(&mut iter)?;
 
-        Some(SetActivationPointInstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            admin: admin.pubkey,
-        })
+        Some(SetActivationPointInstructionAccounts { lb_pair, signer })
     }
 }

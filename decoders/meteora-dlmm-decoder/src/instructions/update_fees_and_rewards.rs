@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -21,18 +21,19 @@ impl carbon_core::deserialize::ArrangeAccounts for UpdateFeesAndRewards {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [position, lb_pair, bin_array_lower, bin_array_upper, owner, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let position = next_account(&mut iter)?;
+        let lb_pair = next_account(&mut iter)?;
+        let bin_array_lower = next_account(&mut iter)?;
+        let bin_array_upper = next_account(&mut iter)?;
+        let owner = next_account(&mut iter)?;
 
         Some(UpdateFeesAndRewardsInstructionAccounts {
-            position: position.pubkey,
-            lb_pair: lb_pair.pubkey,
-            bin_array_lower: bin_array_lower.pubkey,
-            bin_array_upper: bin_array_upper.pubkey,
-            owner: owner.pubkey,
+            position,
+            lb_pair,
+            bin_array_lower,
+            bin_array_upper,
+            owner,
         })
     }
 }

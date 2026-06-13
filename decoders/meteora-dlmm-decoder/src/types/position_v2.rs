@@ -24,6 +24,8 @@ pub struct PositionV2 {
     pub lock_release_point: u64,
     pub padding_0: u8,
     pub fee_owner: solana_pubkey::Pubkey,
+    pub version: u8,
+    pub permissionless_operation_bits: u8,
     #[serde(with = "serde_big_array::BigArray")]
-    pub reserved: [u8; 87],
+    pub reserved: [u8; 85],
 }

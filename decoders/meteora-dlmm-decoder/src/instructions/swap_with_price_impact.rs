@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -35,28 +35,39 @@ impl carbon_core::deserialize::ArrangeAccounts for SwapWithPriceImpact {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, bin_array_bitmap_extension, reserve_x, reserve_y, user_token_in, user_token_out, token_x_mint, token_y_mint, oracle, host_fee_in, user, token_x_program, token_y_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let bin_array_bitmap_extension = next_account(&mut iter)?;
+        let reserve_x = next_account(&mut iter)?;
+        let reserve_y = next_account(&mut iter)?;
+        let user_token_in = next_account(&mut iter)?;
+        let user_token_out = next_account(&mut iter)?;
+        let token_x_mint = next_account(&mut iter)?;
+        let token_y_mint = next_account(&mut iter)?;
+        let oracle = next_account(&mut iter)?;
+        let host_fee_in = next_account(&mut iter)?;
+        let user = next_account(&mut iter)?;
+        let token_x_program = next_account(&mut iter)?;
+        let token_y_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(SwapWithPriceImpactInstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            bin_array_bitmap_extension: bin_array_bitmap_extension.pubkey,
-            reserve_x: reserve_x.pubkey,
-            reserve_y: reserve_y.pubkey,
-            user_token_in: user_token_in.pubkey,
-            user_token_out: user_token_out.pubkey,
-            token_x_mint: token_x_mint.pubkey,
-            token_y_mint: token_y_mint.pubkey,
-            oracle: oracle.pubkey,
-            host_fee_in: host_fee_in.pubkey,
-            user: user.pubkey,
-            token_x_program: token_x_program.pubkey,
-            token_y_program: token_y_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            lb_pair,
+            bin_array_bitmap_extension,
+            reserve_x,
+            reserve_y,
+            user_token_in,
+            user_token_out,
+            token_x_mint,
+            token_y_mint,
+            oracle,
+            host_fee_in,
+            user,
+            token_x_program,
+            token_y_program,
+            event_authority,
+            program,
         })
     }
 }

@@ -1,6 +1,6 @@
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -21,12 +21,9 @@ impl carbon_core::deserialize::ArrangeAccounts for ForIdlTypeGenerationDoNotCall
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [dummy_zc_account, _remaining @ ..] = accounts else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let dummy_zc_account = next_account(&mut iter)?;
 
-        Some(ForIdlTypeGenerationDoNotCallInstructionAccounts {
-            dummy_zc_account: dummy_zc_account.pubkey,
-        })
+        Some(ForIdlTypeGenerationDoNotCallInstructionAccounts { dummy_zc_account })
     }
 }

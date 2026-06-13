@@ -1,5 +1,3 @@
-use solana_pubkey::Pubkey;
-
 use carbon_core::{borsh, CarbonDeserialize};
 
 #[derive(
@@ -7,6 +5,6 @@ use carbon_core::{borsh, CarbonDeserialize};
 )]
 #[carbon(discriminator = "0xe445a52e51cb9a1dffc4106b1cca3580")]
 pub struct PositionCloseEvent {
-    pub position: Pubkey,
-    pub owner: Pubkey,
+    pub position: solana_pubkey::Pubkey,
+    pub owner: solana_pubkey::Pubkey,
 }

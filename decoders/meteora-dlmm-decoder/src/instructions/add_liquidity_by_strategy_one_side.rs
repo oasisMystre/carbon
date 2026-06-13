@@ -1,6 +1,6 @@
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -32,25 +32,33 @@ impl carbon_core::deserialize::ArrangeAccounts for AddLiquidityByStrategyOneSide
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [position, lb_pair, bin_array_bitmap_extension, user_token, reserve, token_mint, bin_array_lower, bin_array_upper, sender, token_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let position = next_account(&mut iter)?;
+        let lb_pair = next_account(&mut iter)?;
+        let bin_array_bitmap_extension = next_account(&mut iter)?;
+        let user_token = next_account(&mut iter)?;
+        let reserve = next_account(&mut iter)?;
+        let token_mint = next_account(&mut iter)?;
+        let bin_array_lower = next_account(&mut iter)?;
+        let bin_array_upper = next_account(&mut iter)?;
+        let sender = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(AddLiquidityByStrategyOneSideInstructionAccounts {
-            position: position.pubkey,
-            lb_pair: lb_pair.pubkey,
-            bin_array_bitmap_extension: bin_array_bitmap_extension.pubkey,
-            user_token: user_token.pubkey,
-            reserve: reserve.pubkey,
-            token_mint: token_mint.pubkey,
-            bin_array_lower: bin_array_lower.pubkey,
-            bin_array_upper: bin_array_upper.pubkey,
-            sender: sender.pubkey,
-            token_program: token_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            position,
+            lb_pair,
+            bin_array_bitmap_extension,
+            user_token,
+            reserve,
+            token_mint,
+            bin_array_lower,
+            bin_array_upper,
+            sender,
+            token_program,
+            event_authority,
+            program,
         })
     }
 }

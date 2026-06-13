@@ -1,6 +1,6 @@
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -21,11 +21,10 @@ pub struct WithdrawProtocolFeeInstructionAccounts {
     pub token_y_mint: solana_pubkey::Pubkey,
     pub receiver_token_x: solana_pubkey::Pubkey,
     pub receiver_token_y: solana_pubkey::Pubkey,
-    pub claim_fee_operator: solana_pubkey::Pubkey,
     pub operator: solana_pubkey::Pubkey,
+    pub signer: solana_pubkey::Pubkey,
     pub token_x_program: solana_pubkey::Pubkey,
     pub token_y_program: solana_pubkey::Pubkey,
-    pub memo_program: solana_pubkey::Pubkey,
 }
 
 impl carbon_core::deserialize::ArrangeAccounts for WithdrawProtocolFee {
@@ -34,25 +33,31 @@ impl carbon_core::deserialize::ArrangeAccounts for WithdrawProtocolFee {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, reserve_x, reserve_y, token_x_mint, token_y_mint, receiver_token_x, receiver_token_y, claim_fee_operator, operator, token_x_program, token_y_program, memo_program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let reserve_x = next_account(&mut iter)?;
+        let reserve_y = next_account(&mut iter)?;
+        let token_x_mint = next_account(&mut iter)?;
+        let token_y_mint = next_account(&mut iter)?;
+        let receiver_token_x = next_account(&mut iter)?;
+        let receiver_token_y = next_account(&mut iter)?;
+        let operator = next_account(&mut iter)?;
+        let signer = next_account(&mut iter)?;
+        let token_x_program = next_account(&mut iter)?;
+        let token_y_program = next_account(&mut iter)?;
 
         Some(WithdrawProtocolFeeInstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            reserve_x: reserve_x.pubkey,
-            reserve_y: reserve_y.pubkey,
-            token_x_mint: token_x_mint.pubkey,
-            token_y_mint: token_y_mint.pubkey,
-            receiver_token_x: receiver_token_x.pubkey,
-            receiver_token_y: receiver_token_y.pubkey,
-            claim_fee_operator: claim_fee_operator.pubkey,
-            operator: operator.pubkey,
-            token_x_program: token_x_program.pubkey,
-            token_y_program: token_y_program.pubkey,
-            memo_program: memo_program.pubkey,
+            lb_pair,
+            reserve_x,
+            reserve_y,
+            token_x_mint,
+            token_y_mint,
+            receiver_token_x,
+            receiver_token_y,
+            operator,
+            signer,
+            token_x_program,
+            token_y_program,
         })
     }
 }

@@ -1,6 +1,6 @@
 use super::super::types::*;
 
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -31,23 +31,29 @@ impl carbon_core::deserialize::ArrangeAccounts for WithdrawIneligibleReward {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [lb_pair, reward_vault, reward_mint, funder_token_account, funder, bin_array, token_program, memo_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let lb_pair = next_account(&mut iter)?;
+        let reward_vault = next_account(&mut iter)?;
+        let reward_mint = next_account(&mut iter)?;
+        let funder_token_account = next_account(&mut iter)?;
+        let funder = next_account(&mut iter)?;
+        let bin_array = next_account(&mut iter)?;
+        let token_program = next_account(&mut iter)?;
+        let memo_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(WithdrawIneligibleRewardInstructionAccounts {
-            lb_pair: lb_pair.pubkey,
-            reward_vault: reward_vault.pubkey,
-            reward_mint: reward_mint.pubkey,
-            funder_token_account: funder_token_account.pubkey,
-            funder: funder.pubkey,
-            bin_array: bin_array.pubkey,
-            token_program: token_program.pubkey,
-            memo_program: memo_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            lb_pair,
+            reward_vault,
+            reward_mint,
+            funder_token_account,
+            funder,
+            bin_array,
+            token_program,
+            memo_program,
+            event_authority,
+            program,
         })
     }
 }

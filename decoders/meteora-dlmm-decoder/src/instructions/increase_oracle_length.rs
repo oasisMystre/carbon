@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -23,17 +23,19 @@ impl carbon_core::deserialize::ArrangeAccounts for IncreaseOracleLength {
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [oracle, funder, system_program, event_authority, program, _remaining @ ..] = accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let oracle = next_account(&mut iter)?;
+        let funder = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(IncreaseOracleLengthInstructionAccounts {
-            oracle: oracle.pubkey,
-            funder: funder.pubkey,
-            system_program: system_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            oracle,
+            funder,
+            system_program,
+            event_authority,
+            program,
         })
     }
 }

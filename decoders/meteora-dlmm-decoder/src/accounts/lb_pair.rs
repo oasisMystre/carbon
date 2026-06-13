@@ -2,7 +2,9 @@ use super::super::types::*;
 
 use carbon_core::{borsh, CarbonDeserialize};
 
-#[derive(CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    CarbonDeserialize, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq, Clone, Hash,
+)]
 #[carbon(discriminator = "0x210b3162b565b10d")]
 pub struct LbPair {
     pub parameters: StaticParameters,
@@ -37,5 +39,6 @@ pub struct LbPair {
     pub creator: solana_pubkey::Pubkey,
     pub token_mint_x_program_flag: u8,
     pub token_mint_y_program_flag: u8,
-    pub reserved: [u8; 22],
+    pub version: u8,
+    pub reserved: [u8; 21],
 }

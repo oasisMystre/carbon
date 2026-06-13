@@ -8,4 +8,5 @@ pub enum AccountsType {
     TransferHookY,
     TransferHookReward,
     TransferHookMultiReward(u8),
+    TransferHookReferral,
 }

@@ -1,5 +1,3 @@
-use solana_pubkey::Pubkey;
-
 use carbon_core::{borsh, CarbonDeserialize};
 
 #[derive(
@@ -7,9 +5,9 @@ use carbon_core::{borsh, CarbonDeserialize};
 )]
 #[carbon(discriminator = "0xe445a52e51cb9a1d9def2acc1e38df2e")]
 pub struct IncreasePositionLengthEvent {
-    pub lb_pair: Pubkey,
-    pub position: Pubkey,
-    pub owner: Pubkey,
+    pub lb_pair: solana_pubkey::Pubkey,
+    pub position: solana_pubkey::Pubkey,
+    pub owner: solana_pubkey::Pubkey,
     pub length_to_add: u16,
     pub side: u8,
 }

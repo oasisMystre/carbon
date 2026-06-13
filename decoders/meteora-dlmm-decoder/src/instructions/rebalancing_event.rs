@@ -1,5 +1,3 @@
-use solana_pubkey::Pubkey;
-
 use carbon_core::{borsh, CarbonDeserialize};
 
 #[derive(
@@ -7,9 +5,9 @@ use carbon_core::{borsh, CarbonDeserialize};
 )]
 #[carbon(discriminator = "0xe445a52e51cb9a1d006d75b33d5bc7c8")]
 pub struct RebalancingEvent {
-    pub lb_pair: Pubkey,
-    pub position: Pubkey,
-    pub owner: Pubkey,
+    pub lb_pair: solana_pubkey::Pubkey,
+    pub position: solana_pubkey::Pubkey,
+    pub owner: solana_pubkey::Pubkey,
     pub active_bin_id: i32,
     pub x_withdrawn_amount: u64,
     pub x_added_amount: u64,

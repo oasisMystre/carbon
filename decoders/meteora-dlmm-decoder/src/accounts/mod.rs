@@ -7,8 +7,9 @@ pub mod bin_array_bitmap_extension;
 pub mod claim_fee_operator;
 pub mod dummy_zc_account;
 pub mod lb_pair;
+pub mod limit_order;
+pub mod operator;
 pub mod oracle;
-pub mod position;
 pub mod position_v2;
 pub mod preset_parameter;
 pub mod preset_parameter2;
@@ -20,8 +21,9 @@ pub enum MeteoraDlmmAccount {
     ClaimFeeOperator(claim_fee_operator::ClaimFeeOperator),
     DummyZcAccount(dummy_zc_account::DummyZcAccount),
     LbPair(lb_pair::LbPair),
+    LimitOrder(limit_order::LimitOrder),
+    Operator(operator::Operator),
     Oracle(oracle::Oracle),
-    Position(position::Position),
     PositionV2(position_v2::PositionV2),
     PresetParameter(preset_parameter::PresetParameter),
     PresetParameter2(preset_parameter2::PresetParameter2),
@@ -92,20 +94,31 @@ impl<'a> AccountDecoder<'a> for MeteoraDlmmDecoder {
             });
         }
 
-        if let Some(decoded_account) = oracle::Oracle::deserialize(account.data.as_slice()) {
+        if let Some(decoded_account) = limit_order::LimitOrder::deserialize(account.data.as_slice())
+        {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: MeteoraDlmmAccount::Oracle(decoded_account),
+                data: MeteoraDlmmAccount::LimitOrder(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,
             });
         }
 
-        if let Some(decoded_account) = position::Position::deserialize(account.data.as_slice()) {
+        if let Some(decoded_account) = operator::Operator::deserialize(account.data.as_slice()) {
             return Some(carbon_core::account::DecodedAccount {
                 lamports: account.lamports,
-                data: MeteoraDlmmAccount::Position(decoded_account),
+                data: MeteoraDlmmAccount::Operator(decoded_account),
+                owner: account.owner,
+                executable: account.executable,
+                rent_epoch: account.rent_epoch,
+            });
+        }
+
+        if let Some(decoded_account) = oracle::Oracle::deserialize(account.data.as_slice()) {
+            return Some(carbon_core::account::DecodedAccount {
+                lamports: account.lamports,
+                data: MeteoraDlmmAccount::Oracle(decoded_account),
                 owner: account.owner,
                 executable: account.executable,
                 rent_epoch: account.rent_epoch,

@@ -1,4 +1,4 @@
-use carbon_core::{borsh, CarbonDeserialize};
+use carbon_core::{account_utils::next_account, borsh, CarbonDeserialize};
 
 #[derive(
     CarbonDeserialize, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Hash,
@@ -32,24 +32,31 @@ impl carbon_core::deserialize::ArrangeAccounts for InitializePositionByOperator 
     fn arrange_accounts(
         accounts: &[solana_instruction::AccountMeta],
     ) -> Option<Self::ArrangedAccounts> {
-        let [payer, base, position, lb_pair, owner, operator, operator_token_x, owner_token_x, system_program, event_authority, program, _remaining @ ..] =
-            accounts
-        else {
-            return None;
-        };
+        let mut iter = accounts.iter();
+        let payer = next_account(&mut iter)?;
+        let base = next_account(&mut iter)?;
+        let position = next_account(&mut iter)?;
+        let lb_pair = next_account(&mut iter)?;
+        let owner = next_account(&mut iter)?;
+        let operator = next_account(&mut iter)?;
+        let operator_token_x = next_account(&mut iter)?;
+        let owner_token_x = next_account(&mut iter)?;
+        let system_program = next_account(&mut iter)?;
+        let event_authority = next_account(&mut iter)?;
+        let program = next_account(&mut iter)?;
 
         Some(InitializePositionByOperatorInstructionAccounts {
-            payer: payer.pubkey,
-            base: base.pubkey,
-            position: position.pubkey,
-            lb_pair: lb_pair.pubkey,
-            owner: owner.pubkey,
-            operator: operator.pubkey,
-            operator_token_x: operator_token_x.pubkey,
-            owner_token_x: owner_token_x.pubkey,
-            system_program: system_program.pubkey,
-            event_authority: event_authority.pubkey,
-            program: program.pubkey,
+            payer,
+            base,
+            position,
+            lb_pair,
+            owner,
+            operator,
+            operator_token_x,
+            owner_token_x,
+            system_program,
+            event_authority,
+            program,
         })
     }
 }

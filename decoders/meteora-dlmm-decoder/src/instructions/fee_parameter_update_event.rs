@@ -1,5 +1,3 @@
-use solana_pubkey::Pubkey;
-
 use carbon_core::{borsh, CarbonDeserialize};
 
 #[derive(
@@ -7,7 +5,8 @@ use carbon_core::{borsh, CarbonDeserialize};
 )]
 #[carbon(discriminator = "0xe445a52e51cb9a1d304cf17590d7f22c")]
 pub struct FeeParameterUpdateEvent {
-    pub lb_pair: Pubkey,
+    pub lb_pair: solana_pubkey::Pubkey,
     pub protocol_share: u16,
     pub base_factor: u16,
+    pub base_fee_power_factor: u8,
 }

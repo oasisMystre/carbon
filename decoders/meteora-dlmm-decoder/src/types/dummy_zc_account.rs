@@ -7,4 +7,5 @@ use carbon_core::{borsh, CarbonDeserialize};
 )]
 pub struct DummyZcAccount {
     pub position_bin_data: PositionBinData,
+    pub limit_order_bin_data: LimitOrderBinData,
 }
