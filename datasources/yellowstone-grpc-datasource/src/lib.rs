@@ -3,7 +3,7 @@ use {
     carbon_core::{
         datasource::{
             AccountDeletion, AccountUpdate, Datasource, DatasourceDisconnection, DatasourceId,
-            TransactionUpdate, Update, UpdateType,
+            TransactionUpdate, Update, UpdateId, UpdateType,
         },
         error::CarbonResult,
         metrics::MetricsCollection,
@@ -17,9 +17,12 @@ use {
         collections::{HashMap, HashSet},
         convert::TryFrom,
         sync::{Arc, Mutex},
-        time::Duration,
+        time::{Duration, Instant},
     },
-    tokio::sync::{mpsc, mpsc::Sender, RwLock},
+    tokio::sync::{
+        mpsc::{self, Sender},
+        RwLock,
+    },
     tokio_util::sync::CancellationToken,
     yellowstone_grpc_client::{GeyserGrpcBuilder, GeyserGrpcBuilderResult, GeyserGrpcClient},
     yellowstone_grpc_proto::{
@@ -194,7 +197,7 @@ impl Datasource for YellowstoneGrpcGeyserClient {
     async fn consume(
         &self,
         id: DatasourceId,
-        sender: Sender<(Update, DatasourceId)>,
+        sender: Sender<(Vec<Update>, UpdateId, DatasourceId)>,
         cancellation_token: CancellationToken,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
@@ -233,8 +236,6 @@ impl Datasource for YellowstoneGrpcGeyserClient {
             .expect("reconnect_receiver should only be taken once");
 
         tokio::spawn(async move {
-            let id_for_loop = id.clone();
-
             let mut last_processed_slot: u64 = 0;
             let mut last_slot_before_disconnect: Option<u64> = None;
             let mut last_disconnect_time: Option<DateTime<Utc>> = None;
@@ -322,64 +323,93 @@ impl Datasource for YellowstoneGrpcGeyserClient {
                                                   }
                                               }
 
+                                              let start_time = Instant::now();
+                                              let mut updates = vec![];
+
                                               match msg.update_oneof {
-                                              Some(UpdateOneof::Account(account_update)) => {
-                                                  last_processed_slot = account_update.slot;
-                                                  send_subscribe_account_update_info(
-                                                      account_update.account,
-                                                      &metrics,
-                                                      &sender,
-                                                      id_for_loop.clone(),
-                                                      account_update.slot,
-                                                      &account_deletions_tracked,
+                                                Some(UpdateOneof::Account(account_update)) => {
+                                                    last_processed_slot = account_update.slot;
+                                                    collect_subscribe_account_update_info(
+                                                        account_update.account,
+                                                        account_update.slot,
+                                                        &mut updates,
+                                                        &account_deletions_tracked,
+                                                    ).await;
+                                                }
+
+                                                Some(UpdateOneof::Transaction(transaction_update)) => {
+                                                    last_processed_slot = transaction_update.slot;
+                                                    collect_subscribe_update_transaction_info(
+                                                        transaction_update.transaction,
+                                                        transaction_update.slot,
+                                                        None,
+                                                        &mut updates
+                                                    );
+                                                }
+                                                Some(UpdateOneof::Block(block_update)) => {
+                                                    last_processed_slot = block_update.slot;
+                                                    let block_time = block_update.block_time.map(|ts| ts.timestamp);
+
+                                                    for transaction_update in block_update.transactions {
+                                                        if retain_block_failed_transactions || transaction_update.meta.as_ref().map(|meta| meta.err.is_none()).unwrap_or(false) {
+                                                            collect_subscribe_update_transaction_info(
+                                                            Some(transaction_update),
+                                                            block_update.slot,
+                                                            block_time,
+                                                            &mut updates
+                                                            );
+                                                        }
+                                                    }
+
+                                                    for account_info in block_update.accounts {
+                                                        collect_subscribe_account_update_info(
+                                                            Some(account_info),
+                                                            block_update.slot,
+                                                            &mut updates,
+                                                            &account_deletions_tracked,
+                                                        ).await;
+                                                    }
+                                                }
+
+                                                Some(UpdateOneof::Ping(_)) => {
+                                                    match subscribe_tx
+                                                        .send(SubscribeRequest {
+                                                            ping: Some(SubscribeRequestPing { id: 1 }),
+                                                            ..Default::default()
+                                                        })
+                                                        .await {
+                                                            Ok(()) => (),
+                                                            Err(error) => {
+                                                                log::error!("Failed to send ping error: {error:?}");
+                                                                break;
+                                                            },
+                                                        }
+                                                }
+
+                                                _ => {}
+                                              }
+
+                                              if let Err(e) = sender.try_send((updates, UpdateId::new_unique(), id.clone())) {
+
+                                                  log::error!(
+                                                      "Failed to send update slot {last_processed_slot}: {e:?}"
+                                                  );
+                                                  return;
+                                              }
+
+                                              metrics
+                                                  .record_histogram(
+                                                      "yellowstone_grpc_transaction_process_time_nanoseconds",
+                                                      start_time.elapsed().as_nanos() as f64,
                                                   )
                                                   .await
-                                              }
+                                                  .expect("Failed to record histogram");
 
-                                              Some(UpdateOneof::Transaction(transaction_update)) => {
-                                                  last_processed_slot = transaction_update.slot;
-                                                  send_subscribe_update_transaction_info(transaction_update.transaction, &metrics, &sender, id_for_loop.clone(), transaction_update.slot, None).await
-                                              }
-                                              Some(UpdateOneof::Block(block_update)) => {
-                                                  last_processed_slot = block_update.slot;
-                                                  let block_time = block_update.block_time.map(|ts| ts.timestamp);
+                                              metrics
+                                                  .increment_counter("yellowstone_grpc_transaction_updates_received", 1)
+                                                  .await
+                                                  .unwrap_or_else(|value| log::error!("Error recording metric: {value}"));
 
-                                                  for transaction_update in block_update.transactions {
-                                                      if retain_block_failed_transactions || transaction_update.meta.as_ref().map(|meta| meta.err.is_none()).unwrap_or(false) {
-                                                          send_subscribe_update_transaction_info(Some(transaction_update), &metrics, &sender, id_for_loop.clone(), block_update.slot, block_time).await
-                                                      }
-                                                  }
-
-                                                  for account_info in block_update.accounts {
-                                                      send_subscribe_account_update_info(
-                                                          Some(account_info),
-                                                          &metrics,
-                                                          &sender,
-                                                          id_for_loop.clone(),
-                                                          block_update.slot,
-                                                          &account_deletions_tracked,
-                                                      )
-                                                      .await;
-                                                  }
-                                              }
-
-                                              Some(UpdateOneof::Ping(_)) => {
-                                                  match subscribe_tx
-                                                      .send(SubscribeRequest {
-                                                          ping: Some(SubscribeRequestPing { id: 1 }),
-                                                          ..Default::default()
-                                                      })
-                                                      .await {
-                                                          Ok(()) => (),
-                                                          Err(error) => {
-                                                              log::error!("Failed to send ping error: {error:?}");
-                                                              break;
-                                                          },
-                                                      }
-                                              }
-
-                                              _ => {}
-                                          }
                                           }
                                           Err(error) => {
                                               log::error!("Geyser stream error: {error:?}");
@@ -424,16 +454,12 @@ impl Datasource for YellowstoneGrpcGeyserClient {
     }
 }
 
-pub async fn send_subscribe_account_update_info(
+pub async fn collect_subscribe_account_update_info(
     account_update_info: Option<SubscribeUpdateAccountInfo>,
-    metrics: &MetricsCollection,
-    sender: &Sender<(Update, DatasourceId)>,
-    id: DatasourceId,
     slot: u64,
+    updates: &mut Vec<Update>,
     account_deletions_tracked: &RwLock<HashSet<Pubkey>>,
 ) {
-    let start_time = std::time::Instant::now();
-
     if let Some(account_info) = account_update_info {
         let Ok(account_pubkey) = Pubkey::try_from(account_info.pubkey) else {
             return;
@@ -464,11 +490,7 @@ pub async fn send_subscribe_account_update_info(
                         .txn_signature
                         .and_then(|sig| Signature::try_from(sig).ok()),
                 };
-                if let Err(e) = sender.try_send((Update::AccountDeletion(account_deletion), id)) {
-                    log::error!(
-                        "Failed to send account deletion update for pubkey {account_pubkey:?} at slot {slot}: {e:?}"
-                    );
-                }
+                updates.push(Update::AccountDeletion(account_deletion));
             }
         } else {
             let update = Update::Account(AccountUpdate {
@@ -480,40 +502,19 @@ pub async fn send_subscribe_account_update_info(
                     .and_then(|sig| Signature::try_from(sig).ok()),
             });
 
-            if let Err(e) = sender.try_send((update, id)) {
-                log::error!(
-                    "Failed to send account update for pubkey {account_pubkey:?} at slot {slot}: {e:?}"
-                );
-            }
+            updates.push(update);
         }
-
-        metrics
-            .record_histogram(
-                "yellowstone_grpc_account_process_time_nanoseconds",
-                start_time.elapsed().as_nanos() as f64,
-            )
-            .await
-            .expect("Failed to record histogram");
-
-        metrics
-            .increment_counter("yellowstone_grpc_account_updates_received", 1)
-            .await
-            .unwrap_or_else(|value| log::error!("Error recording metric: {value}"));
     } else {
         log::error!("No account info in UpdateOneof::Account at slot {slot}");
     }
 }
 
-pub async fn send_subscribe_update_transaction_info(
+pub fn collect_subscribe_update_transaction_info(
     transaction_info: Option<SubscribeUpdateTransactionInfo>,
-    metrics: &MetricsCollection,
-    sender: &Sender<(Update, DatasourceId)>,
-    id: DatasourceId,
     slot: u64,
     block_time: Option<i64>,
+    updates: &mut Vec<Update>,
 ) {
-    let start_time = std::time::Instant::now();
-
     if let Some(transaction_info) = transaction_info {
         let Ok(signature) = Signature::try_from(transaction_info.signature) else {
             return;
@@ -544,25 +545,7 @@ pub async fn send_subscribe_update_transaction_info(
             block_time,
             block_hash: None,
         }));
-        if let Err(e) = sender.try_send((update, id)) {
-            log::error!(
-                "Failed to send transaction update with signature {signature:?} at slot {slot}: {e:?}"
-            );
-            return;
-        }
-
-        metrics
-            .record_histogram(
-                "yellowstone_grpc_transaction_process_time_nanoseconds",
-                start_time.elapsed().as_nanos() as f64,
-            )
-            .await
-            .expect("Failed to record histogram");
-
-        metrics
-            .increment_counter("yellowstone_grpc_transaction_updates_received", 1)
-            .await
-            .unwrap_or_else(|value| log::error!("Error recording metric: {value}"));
+        updates.push(update);
     } else {
         log::error!("No transaction info in `UpdateOneof::Transaction` at slot {slot}");
     }

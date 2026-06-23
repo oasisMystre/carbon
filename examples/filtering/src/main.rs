@@ -2,7 +2,7 @@ use {
     async_trait::async_trait,
     carbon_core::{
         account::{AccountMetadata, DecodedAccount},
-        datasource::{AccountUpdate, Datasource, DatasourceId, Update, UpdateType},
+        datasource::{AccountUpdate, Datasource, DatasourceId, Update, UpdateId, UpdateType},
         error::CarbonResult,
         filter::DatasourceFilter,
         instruction::{DecodedInstruction, InstructionMetadata, NestedInstructions},
@@ -308,7 +308,7 @@ impl Datasource for GpaRpcDatasource {
     async fn consume(
         &self,
         id: DatasourceId,
-        sender: Sender<(Update, DatasourceId)>,
+        sender: Sender<(Vec<Update>, UpdateId, DatasourceId)>,
         _cancellation_token: CancellationToken,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
@@ -347,12 +347,13 @@ impl Datasource for GpaRpcDatasource {
         for (pubkey, account) in program_accounts {
             if let Some(account) = account.decode::<Account>() {
                 if let Err(e) = sender.try_send((
-                    Update::Account(AccountUpdate {
+                    vec![Update::Account(AccountUpdate {
                         pubkey,
                         account,
                         slot,
                         transaction_signature: None,
-                    }),
+                    })],
+                    UpdateId::new_unique(),
                     id_for_loop.clone(),
                 )) {
                     log::error!("Failed to send account update: {e:?}");

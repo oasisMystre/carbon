@@ -115,7 +115,7 @@ pub trait Datasource: Send + Sync {
     async fn consume(
         &self,
         id: DatasourceId,
-        sender: tokio::sync::mpsc::Sender<(Update, DatasourceId)>,
+        sender: tokio::sync::mpsc::Sender<(Vec<Update>, UpdateId, DatasourceId)>,
         cancellation_token: CancellationToken,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
@@ -205,6 +205,16 @@ impl DatasourceId {
     /// ```
     pub fn new_named(name: &str) -> Self {
         Self(name.to_string())
+    }
+}
+
+/// send update batch and wait for it to process
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UpdateId(pub String);
+
+impl UpdateId {
+    pub fn new_unique() -> Self {
+        Self(uuid::Uuid::new_v4().to_string())
     }
 }
 

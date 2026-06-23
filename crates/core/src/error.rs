@@ -28,7 +28,7 @@
 
 use {crate::datasource::UpdateType, thiserror::Error};
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum Error {
     #[error("Missing update type in datasource")]
     MissingUpdateTypeInDatasource(UpdateType),
