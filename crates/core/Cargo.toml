@@ -11,6 +11,7 @@ categories = ["encoding"]
 
 [features]
 default = ["macros"]
+unbounded = []
 macros = ["carbon-macros", "carbon-proc-macros"]
 postgres = ["sqlx", "num-traits", "sqlx_migrator", "bigdecimal"]
 graphql = ["juniper", "axum", "juniper_axum"]

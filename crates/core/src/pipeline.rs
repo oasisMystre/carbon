@@ -50,6 +50,9 @@
 //! - Proper metric collection and flushing are essential for monitoring
 //!   pipeline performance, especially in production environments.
 
+#[cfg(not(feature = "unbounded"))]
+use tokio::sync::mpsc::Sender;
+#[cfg(feature = "unbounded")]
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
 
@@ -119,7 +122,8 @@ pub enum ShutdownStrategy {
 /// `channel_buffer_size` is not explicitly set during pipeline construction.
 ///
 /// The default size is 10,000 updates, which provides a reasonable balance
-pub const DEFAULT_CHANNEL_BUFFER_SIZE: usize = 1_000;
+#[cfg(not(feature = "unbounded"))]
+pub const DEFAULT_CHANNEL_BUFFER_SIZE: usize = 10_000;
 
 /// Represents the primary data processing pipeline in the `carbon-core`
 /// framework.
@@ -212,8 +216,12 @@ pub const DEFAULT_CHANNEL_BUFFER_SIZE: usize = 1_000;
 ///   metrics are flushed. If `None`, a default interval (usually 5 seconds) is
 ///   used.
 pub struct Pipeline {
+    #[cfg(feature = "unbounded")]
     pub update_completed_sender:
         Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
+    #[cfg(not(feature = "unbounded"))]
+    pub update_completed_sender:
+        Option<Arc<Mutex<Sender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
     pub datasources: Vec<(DatasourceId, Arc<dyn Datasource + Send + Sync>)>,
     pub account_pipes: Arc<Mutex<Vec<Box<dyn AccountPipes>>>>,
     pub account_deletion_pipes: Arc<Mutex<Vec<Box<dyn AccountDeletionPipes>>>>,
@@ -224,6 +232,7 @@ pub struct Pipeline {
     pub metrics_flush_interval: Option<u64>,
     pub datasource_cancellation_token: Option<CancellationToken>,
     pub shutdown_strategy: ShutdownStrategy,
+    #[cfg(not(feature = "unbounded"))]
     pub channel_buffer_size: usize,
 }
 
@@ -271,6 +280,7 @@ impl Pipeline {
             metrics_flush_interval: None,
             datasource_cancellation_token: None,
             shutdown_strategy: ShutdownStrategy::default(),
+            #[cfg(not(feature = "unbounded"))]
             channel_buffer_size: DEFAULT_CHANNEL_BUFFER_SIZE,
         }
     }
@@ -346,6 +356,10 @@ impl Pipeline {
         log::trace!("run(self)");
 
         self.metrics.initialize_metrics().await?;
+        #[cfg(feature = "unbounded")]
+        let (update_sender, mut update_receiver) =
+            tokio::sync::mpsc::unbounded_channel::<(Vec<Update>, UpdateId, DatasourceId)>();
+        #[cfg(not(feature = "unbounded"))]
         let (update_sender, mut update_receiver) =
             tokio::sync::mpsc::channel::<(Vec<Update>, UpdateId, DatasourceId)>(
                 self.channel_buffer_size,
@@ -468,7 +482,12 @@ impl Pipeline {
                                     // Send batch completion notification.
                                     if let Some(ref update_completed_sender) = update_completed_sender {
                                         let update_completed_sender = update_completed_sender.lock().await;
+                                        #[cfg(feature = "unbounded")]
                                         let _ = update_completed_sender.send((update_id, None));
+                                        #[cfg(not(feature = "unbounded"))]
+                                        if let Err(error) = update_completed_sender.try_send((update_id, None)) {
+                                            log::error!("failed to send update completed notification: {error:?}");
+                                        }
                                     }
                                 }
                             });
@@ -718,8 +737,12 @@ async fn process_update(
 ///   your application.
 #[derive(Default)]
 pub struct PipelineBuilder {
+    #[cfg(feature = "unbounded")]
     pub update_completed_sender:
         Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
+    #[cfg(not(feature = "unbounded"))]
+    pub update_completed_sender:
+        Option<Arc<Mutex<Sender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
     pub datasources: Vec<(DatasourceId, Arc<dyn Datasource + Send + Sync>)>,
     pub account_pipes: Vec<Box<dyn AccountPipes>>,
     pub account_deletion_pipes: Vec<Box<dyn AccountDeletionPipes>>,
@@ -730,6 +753,7 @@ pub struct PipelineBuilder {
     pub metrics_flush_interval: Option<u64>,
     pub datasource_cancellation_token: Option<CancellationToken>,
     pub shutdown_strategy: ShutdownStrategy,
+    #[cfg(not(feature = "unbounded"))]
     pub channel_buffer_size: usize,
 }
 
@@ -1373,6 +1397,7 @@ impl PipelineBuilder {
     /// let builder = PipelineBuilder::new()
     ///     .channel_buffer_size(1000);
     /// ```
+    #[cfg(not(feature = "unbounded"))]
     pub fn channel_buffer_size(mut self, size: usize) -> Self {
         log::trace!("channel_buffer_size(self, size: {size:?})");
         self.channel_buffer_size = size;
@@ -1381,7 +1406,12 @@ impl PipelineBuilder {
 
     pub fn update_completed_sender(
         mut self,
-        value: Arc<Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>>,
+        #[cfg(feature = "unbounded")] value: Arc<
+            Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>,
+        >,
+        #[cfg(not(feature = "unbounded"))] value: Arc<
+            Mutex<Sender<(UpdateId, Option<(Update, crate::error::Error)>)>>,
+        >,
     ) -> Self {
         self.update_completed_sender = Some(value);
         self
@@ -1437,6 +1467,7 @@ impl PipelineBuilder {
             metrics: Arc::new(self.metrics),
             metrics_flush_interval: self.metrics_flush_interval,
             datasource_cancellation_token: self.datasource_cancellation_token,
+            #[cfg(not(feature = "unbounded"))]
             channel_buffer_size: self.channel_buffer_size,
         })
     }

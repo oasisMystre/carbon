@@ -115,7 +115,16 @@ pub trait Datasource: Send + Sync {
     async fn consume(
         &self,
         id: DatasourceId,
-        sender: tokio::sync::mpsc::Sender<(Vec<Update>, UpdateId, DatasourceId)>,
+        #[cfg(feature = "unbounded")] sender: tokio::sync::mpsc::UnboundedSender<(
+            Vec<Update>,
+            UpdateId,
+            DatasourceId,
+        )>,
+        #[cfg(not(feature = "unbounded"))] sender: tokio::sync::mpsc::Sender<(
+            Vec<Update>,
+            UpdateId,
+            DatasourceId,
+        )>,
         cancellation_token: CancellationToken,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
@@ -205,6 +214,10 @@ impl DatasourceId {
     /// ```
     pub fn new_named(name: &str) -> Self {
         Self(name.to_string())
+    }
+
+    pub fn to_string(&self) -> String {
+        self.0.clone()
     }
 }
 
