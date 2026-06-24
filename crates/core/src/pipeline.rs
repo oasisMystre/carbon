@@ -420,84 +420,61 @@ impl Pipeline {
                             // Spawn each update concurrently in its own tokio task.
                             // Each task returns (Update, CarbonResult<()>, Duration) —
                             // the Update is needed for error notifications.
-                            let mut handles = Vec::with_capacity(updates.len());
-                            for update in updates {
-                                let update_for_error = update.clone();
+                            tokio::spawn({
+                                let metrics = self.metrics.clone();
                                 let account_pipes = self.account_pipes.clone();
-                                let account_deletion_pipes = self.account_deletion_pipes.clone();
-                                let block_details_pipes = self.block_details_pipes.clone();
                                 let instruction_pipes = self.instruction_pipes.clone();
                                 let transaction_pipes = self.transaction_pipes.clone();
-                                let metrics = self.metrics.clone();
+                                let block_details_pipes = self.block_details_pipes.clone();
+                                let account_deletion_pipes = self.account_deletion_pipes.clone();
+                                let update_completed_sender = self.update_completed_sender.clone();
+
                                 let datasource_id = datasource_id.clone();
 
-                                handles.push(tokio::spawn(async move {
-                                    let task_start = Instant::now();
-                                    let result = process_update(
-                                        update,
-                                        datasource_id,
-                                        account_pipes,
-                                        account_deletion_pipes,
-                                        block_details_pipes,
-                                        instruction_pipes,
-                                        transaction_pipes,
-                                        metrics,
-                                    )
-                                    .await;
-                                    (update_for_error, result, task_start.elapsed())
-                                }));
-                            }
+                                async move {
+                                    futures::future::join_all(updates.iter().map(|update| async {
+                                        let task_start = Instant::now();
+                                        let result = process_update(
+                                            update.clone(),
+                                            datasource_id.clone(),
+                                            account_pipes.clone(),
+                                            account_deletion_pipes.clone(),
+                                            block_details_pipes.clone(),
+                                            instruction_pipes.clone(),
+                                            transaction_pipes.clone(),
+                                            metrics.clone(),
+                                        )
+                                        .await;
 
-                            for handle in handles {
-                                match handle.await {
-                                    Ok((_update, Ok(()), elapsed)) => {
-                                        let ns = elapsed.as_nanos() as f64;
-                                        self
-                                            .metrics
+                                        let ns = task_start.elapsed().as_nanos() as f64;
+                                        let _ = metrics
                                             .record_histogram("updates_process_time_nanoseconds", ns)
-                                            .await?;
-                                        self
-                                            .metrics
+                                            .await;
+                                        let _ = metrics
                                             .record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0)
-                                            .await?;
-                                        self
-                                            .metrics.increment_counter("updates_successful", 1)
-                                            .await?;
-                                        log::trace!("processed update")
-                                    }
-                                    Ok((update, Err(error), elapsed)) => {
-                                        let ns = elapsed.as_nanos() as f64;
-                                        self
-                                            .metrics
-                                            .record_histogram("updates_process_time_nanoseconds", ns)
-                                            .await?;
-                                        self
-                                            .metrics
-                                            .record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0)
-                                            .await?;
-                                        log::error!("error processing update: {error:?}");
-                                        if let Some(ref sender) = self.update_completed_sender {
-                                            let sender = sender.lock().await;
-                                            let _ = sender.send((update_id.clone(), Some((update, error))));
-                                        }
-                                        self.metrics.increment_counter("updates_failed", 1).await?;
-                                    }
-                                    Err(join_error) => {
-                                        log::error!("update processing task panicked: {join_error:?}");
-                                        self.metrics.increment_counter("updates_failed", 1).await?;
-                                    }
-                                };
+                                            .await;
+                                        match result {
+                                            Ok(_) => {
+                                                let _ = metrics.increment_counter("updates_successful", 1).await;
+                                        },
+                                        Err(error) => {
+                                            let _ = metrics.increment_counter("updates_failed", 1).await;
+                                            log::error!("error processing update: {error:?}");
 
-                                self
-                                    .metrics.increment_counter("updates_processed", 1)
-                                    .await?;
-                            }
+                                       },
+                                   }
+                                    })).await;
 
-                            // Send batch completion notification.
-                            if let Some(ref update_completed_sender) = self.update_completed_sender {
-                                let update_completed_sender = update_completed_sender.lock().await;
-                                let _ = update_completed_sender.send((update_id, None));
-                            }
+                                    // Send batch completion notification.
+                                    if let Some(ref update_completed_sender) = update_completed_sender {
+                                        let update_completed_sender = update_completed_sender.lock().await;
+                                        let _ = update_completed_sender.send((update_id, None));
+                                    }
+                                }
+                            });
+
+
+
                             self
                                 .metrics.update_gauge("updates_queued", update_receiver.len() as f64)
                                 .await?;
