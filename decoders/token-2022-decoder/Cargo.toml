@@ -39,7 +39,7 @@ solana-account = { workspace = true }
 solana-instruction = { workspace = true, default-features = false }
 serde_json = { workspace = true }
 solana-program-pack = { workspace = true }
-spl-token-2022 = { workspace = true }
+spl-token-2022.workspace = true
 spl-pod = { workspace = true, features = ["borsh"] }
 spl-token-metadata-interface = { workspace = true }
 spl-token-group-interface = { workspace = true }
@@ -53,6 +53,8 @@ async-trait = { workspace = true, optional = true }
 sqlx_migrator = { workspace = true, optional = true }
 
 juniper = { workspace = true, optional = true }
+solana-zk-sdk = "7.0.1"
+solana-zk-sdk-pod = "0.1.2"
 
 [dev-dependencies]
 carbon-test-utils = { workspace = true }

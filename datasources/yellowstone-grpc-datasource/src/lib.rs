@@ -20,13 +20,13 @@ use {
         time::{Duration, Instant},
     },
     tokio::sync::{
-        mpsc::{self, Sender},
+        mpsc::{self},
         RwLock,
     },
     tokio_util::sync::CancellationToken,
     yellowstone_grpc_client::{GeyserGrpcBuilder, GeyserGrpcBuilderResult, GeyserGrpcClient},
+    yellowstone_grpc_convert::convert_from::{create_tx_meta, create_tx_versioned},
     yellowstone_grpc_proto::{
-        convert_from::{create_tx_meta, create_tx_versioned},
         geyser::{
             subscribe_update::UpdateOneof, SubscribeRequest, SubscribeRequestFilterBlocks,
             SubscribeRequestPing, SubscribeUpdateAccountInfo, SubscribeUpdateTransactionInfo,
@@ -197,7 +197,12 @@ impl Datasource for YellowstoneGrpcGeyserClient {
     async fn consume(
         &self,
         id: DatasourceId,
-        sender: Sender<(Vec<Update>, UpdateId, DatasourceId)>,
+        #[cfg(not(feature = "unbounded"))] sender: tokio::sync::mpsc::Sender<(Vec<Update>, UpdateId, DatasourceId)>,
+        #[cfg(feature = "unbounded")] sender: tokio::sync::mpsc::UnboundedSender<(
+            Vec<Update>,
+            UpdateId,
+            DatasourceId,
+        )>,
         cancellation_token: CancellationToken,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
@@ -389,14 +394,18 @@ impl Datasource for YellowstoneGrpcGeyserClient {
                                                 _ => {}
                                               }
 
-                                              if let Err(e) = sender.try_send((updates, UpdateId::new_unique(), id.clone())) {
-
+                                              #[cfg(not(feature = "unbounded"))]
+                                              let result =  sender.try_send((updates, UpdateId::new_unique(), id.clone()));
+                                              #[cfg(feature = "unbounded")]
+                                              let result = sender.send((updates, UpdateId::new_unique(), id.clone()));
+                                              
+                                              if let Err(e) = result {
                                                   log::error!(
                                                       "Failed to send update slot {last_processed_slot}: {e:?}"
                                                   );
                                                   return;
                                               }
-
+                                              
                                               metrics
                                                   .record_histogram(
                                                       "yellowstone_grpc_transaction_process_time_nanoseconds",

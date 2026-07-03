@@ -1,25 +1,27 @@
 [package]
-name = "carbon-yellowstone-grpc-datasource"
-description = "Yellowstone gRPC Datasource"
-license = { workspace = true }
-version = "0.12.0"
+name = "yellowstone-grpc-convert"
+version = "0.0.0"
 edition = { workspace = true }
-readme = "README.md"
+license = { workspace = true }
 repository = { workspace = true }
-keywords = ["solana", "indexer", "yellowstone", "datasource"]
-categories = ["encoding"]
-
-[lib]
-crate-type = ["rlib"]
 
 [features]
-unbounded = ["carbon-core/unbounded"]
+default = []
+account-data-as-bytes = []
 
 [dependencies]
+solana-clock = { workspace = true }
+solana-hash = { workspace = true }
 solana-account = { workspace = true }
+solana-account-decoder = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-message = { workspace = true }
+solana-transaction = { workspace = true }
 solana-signature = { workspace = true }
 solana-system-interface = { workspace = true }
+solana-transaction-status = { workspace = true }
+solana-transaction-error = { workspace = true }
+solana-transaction-context = { workspace = true }
 
 carbon-core = { workspace = true }
 
@@ -29,6 +31,5 @@ futures = { workspace = true }
 log = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-util = { workspace = true }
-yellowstone-grpc-client = { workspace = true }
 yellowstone-grpc-proto = { workspace = true }
-yellowstone-grpc-convert = { workspace = true }
+bincode.workspace = true

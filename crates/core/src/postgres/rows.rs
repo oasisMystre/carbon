@@ -1,14 +1,15 @@
-use solana_instruction::AccountMeta;
-
-use crate::{
-    account::AccountMetadata,
-    error::CarbonResult,
-    instruction::InstructionMetadata,
-    postgres::{
-        metadata::{AccountRowMetadata, InstructionRowMetadata},
-        operations::{Delete, Insert, LookUp, Upsert},
-        primitives::{Pubkey, U32},
+use {
+    crate::{
+        account::AccountMetadata,
+        error::CarbonResult,
+        instruction::InstructionMetadata,
+        postgres::{
+            metadata::{AccountRowMetadata, InstructionRowMetadata},
+            operations::{Delete, Insert, LookUp, Upsert},
+            primitives::{Pubkey, U32},
+        },
     },
+    solana_instruction::AccountMeta,
 };
 
 #[derive(sqlx::FromRow, Debug, Clone)]

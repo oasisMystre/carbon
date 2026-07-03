@@ -12,6 +12,8 @@ pub struct SwapEvent {
     pub amount_0: u64,
     pub transfer_fee_0: u64,
     pub amount_1: u64,
+    pub trade_fee_0: u64,
+    pub trade_fee_1: u64,
     pub transfer_fee_1: u64,
     pub zero_for_one: bool,
     pub sqrt_price_x64: u128,

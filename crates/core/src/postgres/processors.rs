@@ -1,15 +1,16 @@
-use solana_instruction::AccountMeta;
-use std::sync::Arc;
-
-use crate::{
-    account::{AccountMetadata, AccountProcessorInputType},
-    error::CarbonResult,
-    instruction::{InstructionMetadata, InstructionProcessorInputType},
-    metrics::MetricsCollection,
-    postgres::{
-        operations::Upsert,
-        rows::{AccountRow, InstructionRow},
+use {
+    crate::{
+        account::{AccountMetadata, AccountProcessorInputType},
+        error::CarbonResult,
+        instruction::{InstructionMetadata, InstructionProcessorInputType},
+        metrics::MetricsCollection,
+        postgres::{
+            operations::Upsert,
+            rows::{AccountRow, InstructionRow},
+        },
     },
+    solana_instruction::AccountMeta,
+    std::sync::Arc,
 };
 
 pub struct PostgresAccountProcessor<T, W> {

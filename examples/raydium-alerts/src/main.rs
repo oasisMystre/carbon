@@ -51,6 +51,7 @@ pub async fn main() -> CarbonResult<()> {
             owner: vec![RAYDIUM_AMM_V4_PROGRAM_ID.to_string().clone()],
             filters: vec![],
             nonempty_txn_signature: None,
+            cuckoo_accounts_filter: None,
         },
     );
 
@@ -61,6 +62,7 @@ pub async fn main() -> CarbonResult<()> {
         account_exclude: vec![],
         account_required: vec![RAYDIUM_AMM_V4_PROGRAM_ID.to_string().clone()],
         signature: None,
+        token_accounts: None,
     };
 
     let mut transaction_filters: HashMap<String, SubscribeRequestFilterTransactions> =

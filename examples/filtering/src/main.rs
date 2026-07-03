@@ -17,7 +17,6 @@ use {
     carbon_yellowstone_grpc_datasource::{
         YellowstoneGrpcClientConfig, YellowstoneGrpcGeyserClient,
     },
-    solana_account::Account,
     solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcProgramAccountsConfig},
     solana_pubkey::Pubkey,
     std::{
@@ -47,6 +46,7 @@ pub async fn main() -> CarbonResult<()> {
             owner: vec![KAMINO_LENDING_PROGRAM_ID.to_string().clone()],
             filters: vec![],
             nonempty_txn_signature: None,
+            cuckoo_accounts_filter: None,
         },
     );
 
@@ -57,6 +57,7 @@ pub async fn main() -> CarbonResult<()> {
         account_exclude: vec![],
         account_required: vec![KAMINO_LENDING_PROGRAM_ID.to_string().clone()],
         signature: None,
+        token_accounts: None,
     };
 
     let mut transaction_filters: HashMap<String, SubscribeRequestFilterTransactions> =
@@ -345,7 +346,7 @@ impl Datasource for GpaRpcDatasource {
         let id_for_loop = id.clone();
 
         for (pubkey, account) in program_accounts {
-            if let Some(account) = account.decode::<Account>() {
+            if let Some(account) = account.to_account() {
                 if let Err(e) = sender.try_send((
                     vec![Update::Account(AccountUpdate {
                         pubkey,

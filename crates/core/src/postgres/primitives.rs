@@ -1,10 +1,10 @@
 //! Provides PostgreSQL-specific primitive types and their SQLx implementations
 //! for the `carbon-core` framework.
 //!
-//! This module defines custom primitive types that are designed to work seamlessly
-//! with PostgreSQL databases through the `sqlx` crate. These primitives handle
-//! Solana-specific data types like public keys and various numeric types that
-//! may exceed the standard PostgreSQL integer ranges.
+//! This module defines custom primitive types that are designed to work
+//! seamlessly with PostgreSQL databases through the `sqlx` crate. These
+//! primitives handle Solana-specific data types like public keys and various
+//! numeric types that may exceed the standard PostgreSQL integer ranges.
 //!
 //! # Overview
 //!
@@ -12,9 +12,11 @@
 //! - **Pubkey**: A wrapper around Solana's `Pubkey` type with PostgreSQL
 //!   encoding/decoding support using `BYTEA` storage.
 //! - **Unsigned Integer Types**: `U8`, `U16`, and `U32` wrappers that map
-//!   unsigned integers to PostgreSQL's signed integer types with range validation.
+//!   unsigned integers to PostgreSQL's signed integer types with range
+//!   validation.
 //! - **Large Integer Types**: `U64`, `U128`, and `I128` types that use
-//!   PostgreSQL's `NUMERIC` type to handle values beyond standard integer ranges.
+//!   PostgreSQL's `NUMERIC` type to handle values beyond standard integer
+//!   ranges.
 //!
 //! # Key Components
 //!
@@ -89,22 +91,26 @@
 //!
 //! # Notes
 //!
-//! - All types implement `Deref` for transparent access to their underlying values
-//! - Range validation is performed when converting from PostgreSQL types back to
-//!   standard Rust types
-//! - The `NUMERIC` types support arbitrary precision but have performance overhead
-//!   compared to native integer types
+//! - All types implement `Deref` for transparent access to their underlying
+//!   values
+//! - Range validation is performed when converting from PostgreSQL types back
+//!   to standard Rust types
+//! - The `NUMERIC` types support arbitrary precision but have performance
+//!   overhead compared to native integer types
 //! - Array types are supported for all primitives (e.g., `_BYTEA` for `Pubkey`)
 //! - Error handling uses the crate's `CarbonResult` type for consistency
 
-use bigdecimal::BigDecimal;
-use borsh::BorshDeserialize;
-use num_traits::cast::{FromPrimitive, ToPrimitive};
-use sqlx::postgres::{PgArgumentBuffer, PgHasArrayType, PgTypeInfo, PgValueRef};
-use sqlx::types::Decimal;
-use sqlx::{Decode, Encode, Postgres, Type};
-use std::str::FromStr;
-use std::{convert::TryFrom, ops::Deref};
+use {
+    bigdecimal::BigDecimal,
+    borsh::BorshDeserialize,
+    num_traits::cast::{FromPrimitive, ToPrimitive},
+    sqlx::{
+        postgres::{PgArgumentBuffer, PgHasArrayType, PgTypeInfo, PgValueRef},
+        types::Decimal,
+        Decode, Encode, Postgres, Type,
+    },
+    std::{convert::TryFrom, ops::Deref, str::FromStr},
+};
 
 /// A PostgreSQL-compatible wrapper around Solana's `Pubkey` type.
 ///
@@ -154,7 +160,8 @@ impl From<solana_pubkey::Pubkey> for Pubkey {
     }
 }
 
-// Ergonomic conversions from raw bytes (DEFAULT on invalid length/format) for debugging paths
+// Ergonomic conversions from raw bytes (DEFAULT on invalid length/format) for
+// debugging paths
 impl From<Vec<u8>> for Pubkey {
     fn from(bytes: Vec<u8>) -> Self {
         Self(solana_pubkey::Pubkey::try_from_slice(&bytes).unwrap_or_default())

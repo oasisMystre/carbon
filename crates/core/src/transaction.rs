@@ -29,13 +29,11 @@
 //!   instructions against the provided schema, only processing the data if it
 //!   conforms to the schema.
 
-use crate::filter::Filter;
-use solana_program::hash::Hash;
-
 use {
     crate::{
         collection::InstructionDecoderCollection,
         error::CarbonResult,
+        filter::Filter,
         instruction::{DecodedInstruction, InstructionMetadata, NestedInstruction},
         metrics::MetricsCollection,
         processor::Processor,
@@ -45,6 +43,7 @@ use {
     async_trait::async_trait,
     core::convert::TryFrom,
     serde::de::DeserializeOwned,
+    solana_program::hash::Hash,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     std::sync::Arc,
@@ -66,7 +65,8 @@ use {
 /// - `block_time`: The Unix timestamp of when the transaction was processed.
 /// - `block_hash`: Block hash that can be used to detect a fork.
 ///
-/// Note: The `block_time` and `index` fields may not be available in all scenarios.
+/// Note: The `block_time` and `index` fields may not be available in all
+/// scenarios.
 #[derive(Debug, Clone, Default)]
 pub struct TransactionMetadata {
     pub slot: u64,

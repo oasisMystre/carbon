@@ -25,8 +25,10 @@
 //!
 //! Represents instruction metadata as stored in PostgreSQL tables:
 //! - **signature**: The transaction signature (stored as `__signature`)
-//! - **index**: The instruction index within the transaction (stored as `__instruction_index`)
-//! - **stack_height**: The call stack height for nested instructions (stored as `__stack_height`)
+//! - **index**: The instruction index within the transaction (stored as
+//!   `__instruction_index`)
+//! - **stack_height**: The call stack height for nested instructions (stored as
+//!   `__stack_height`)
 //! - **slot**: The slot when the instruction was executed (stored as `__slot`)
 //!
 //! # Database Schema
@@ -114,9 +116,12 @@
 //!
 //! # Notes
 //!
-//! - All metadata fields use PostgreSQL primitive types from the `primitives` module
-//! - The `From` implementations provide seamless conversion from framework metadata
-//! - Column names use double-underscore prefixes to avoid conflicts with application data
+//! - All metadata fields use PostgreSQL primitive types from the `primitives`
+//!   module
+//! - The `From` implementations provide seamless conversion from framework
+//!   metadata
+//! - Column names use double-underscore prefixes to avoid conflicts with
+//!   application data
 //! - Optional fields (like `slot`) allow for partial metadata storage
 //! - These types implement `sqlx::FromRow` for direct use in SQLx queries
 
@@ -180,9 +185,9 @@ impl From<AccountMetadata> for AccountRowMetadata {
 /// PostgreSQL row metadata for instruction information.
 ///
 /// This type represents instruction metadata as stored in PostgreSQL tables,
-/// providing a bridge between the framework's `InstructionMetadata` and database
-/// row structures. It includes transaction identification, instruction positioning,
-/// and execution context information.
+/// providing a bridge between the framework's `InstructionMetadata` and
+/// database row structures. It includes transaction identification, instruction
+/// positioning, and execution context information.
 ///
 /// # Database Schema
 ///

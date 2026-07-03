@@ -87,7 +87,8 @@ impl InstructionMetadata {
     ///
     /// # Returns
     ///
-    /// All successfull events of the type `T` decoded from the logs of the instruction.
+    /// All successfull events of the type `T` decoded from the logs of the
+    /// instruction.
     pub fn decode_log_events<T: CarbonDeserialize>(&self) -> Vec<T> {
         self.extract_event_log_data()
             .into_iter()
@@ -99,10 +100,11 @@ impl InstructionMetadata {
     /// Extracts the `data` from log messages associated with this instruction.
     ///
     /// This method filters the transaction's log messages to return only those
-    /// that correspond to the current instruction, based on its stack height and
-    /// absolute path within the instruction stack.
+    /// that correspond to the current instruction, based on its stack height
+    /// and absolute path within the instruction stack.
     ///
-    /// Returns `Vec<Vec<u8>>` containing the `data` bytes (base64 encoded) from log messages.
+    /// Returns `Vec<Vec<u8>>` containing the `data` bytes (base64 encoded) from
+    /// log messages.
     fn extract_event_log_data(&self) -> Vec<Vec<u8>> {
         let logs = match &self.transaction_metadata.meta.log_messages {
             Some(logs) => logs,
@@ -171,8 +173,8 @@ impl InstructionMetadata {
     /// Counts the number of precompile instructions that appear before this
     /// instruction's outer index in the transaction message.
     ///
-    /// Precompile programs don't emit invoke logs, which creates a mismatch between message-based indices
-    /// and log-based position counting.
+    /// Precompile programs don't emit invoke logs, which creates a mismatch
+    /// between message-based indices and log-based position counting.
     fn count_precompiles_before_index(&self) -> usize {
         if self.absolute_path.is_empty() {
             return 0;
@@ -786,7 +788,8 @@ mod tests {
         //
         // Log positions (ignoring precompiles):
         // Position [0] = ComputeBudget
-        // Position [1] = target_program (message index 2, but log position 1 due to 1 precompile)
+        // Position [1] = target_program (message index 2, but log position 1 due to 1
+        // precompile)
 
         let compute_budget = Pubkey::new_unique();
         let ed25519 = Pubkey::from_str("Ed25519SigVerify111111111111111111111111111").unwrap();
@@ -846,8 +849,8 @@ mod tests {
         //
         // Log positions (ignoring precompiles):
         // Position [0] = ComputeBudget
-        // Position [1] = router_program (message index 2, but log position 1 due to 1 precompile)
-        // Position [1, 0] = target_program CPI
+        // Position [1] = router_program (message index 2, but log position 1 due to 1
+        // precompile) Position [1, 0] = target_program CPI
 
         let compute_budget = Pubkey::new_unique();
         let ed25519 = Pubkey::from_str("Ed25519SigVerify111111111111111111111111111").unwrap();
@@ -921,8 +924,8 @@ mod tests {
         //
         // Log positions (ignoring precompiles):
         // Position [0] = ComputeBudget
-        // Position [1] = Router (message index 3, but log position 1 due to 2 precompiles)
-        // Position [1, 0] = first swap CPI
+        // Position [1] = Router (message index 3, but log position 1 due to 2
+        // precompiles) Position [1, 0] = first swap CPI
         // Position [1, 0, 0] = token CPI inside first swap
         // Position [1, 1] = second swap CPI
 

@@ -54,20 +54,17 @@
 use tokio::sync::mpsc::Sender;
 #[cfg(feature = "unbounded")]
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::Mutex;
-
-use crate::block_details::{BlockDetailsPipe, BlockDetailsPipes};
-use crate::datasource::{BlockDetails, DatasourceId, UpdateId};
-use crate::filter::Filter;
 use {
     crate::{
         account::{
             AccountDecoder, AccountMetadata, AccountPipe, AccountPipes, AccountProcessorInputType,
         },
         account_deletion::{AccountDeletionPipe, AccountDeletionPipes},
+        block_details::{BlockDetailsPipe, BlockDetailsPipes},
         collection::InstructionDecoderCollection,
-        datasource::{AccountDeletion, Datasource, Update},
+        datasource::{AccountDeletion, BlockDetails, Datasource, DatasourceId, Update, UpdateId},
         error::CarbonResult,
+        filter::Filter,
         instruction::{
             InstructionDecoder, InstructionPipe, InstructionPipes, InstructionProcessorInputType,
             InstructionsWithMetadata, NestedInstructions,
@@ -81,6 +78,7 @@ use {
     core::time,
     serde::de::DeserializeOwned,
     std::{convert::TryInto, sync::Arc, time::Instant},
+    tokio::sync::Mutex,
     tokio_util::sync::CancellationToken,
 };
 
@@ -164,8 +162,8 @@ pub const DEFAULT_CHANNEL_BUFFER_SIZE: usize = 10_000;
 ///   account updates.
 /// - `account_deletion_pipes`: A vector of `AccountDeletionPipes` to handle
 ///   deletion events.
-/// - `block_details_pipes`: A vector of `BlockDetailsPipes` to handle
-///   block details.
+/// - `block_details_pipes`: A vector of `BlockDetailsPipes` to handle block
+///   details.
 /// - `instruction_pipes`: A vector of `InstructionPipes` for processing
 ///   instructions within transactions. These pipes work with nested
 ///   instructions and are generically defined to support varied instruction
@@ -218,10 +216,10 @@ pub const DEFAULT_CHANNEL_BUFFER_SIZE: usize = 10_000;
 pub struct Pipeline {
     #[cfg(feature = "unbounded")]
     pub update_completed_sender:
-        Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
+        Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
     #[cfg(not(feature = "unbounded"))]
     pub update_completed_sender:
-        Option<Arc<Mutex<Sender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
+        Option<Arc<Mutex<Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
     pub datasources: Vec<(DatasourceId, Arc<dyn Datasource + Send + Sync>)>,
     pub account_pipes: Arc<Mutex<Vec<Box<dyn AccountPipes>>>>,
     pub account_deletion_pipes: Arc<Mutex<Vec<Box<dyn AccountDeletionPipes>>>>,
@@ -446,7 +444,7 @@ impl Pipeline {
                                 let datasource_id = datasource_id.clone();
 
                                 async move {
-                                    futures::future::join_all(updates.iter().map(|update| async {
+                                    let results = futures::future::join_all(updates.iter().map(|update| async {
                                         let task_start = Instant::now();
                                         let result = process_update(
                                             update.clone(),
@@ -468,24 +466,26 @@ impl Pipeline {
                                             .record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0)
                                             .await;
                                         match result {
-                                            Ok(_) => {
-                                                let _ = metrics.increment_counter("updates_successful", 1).await;
-                                        },
-                                        Err(error) => {
+                                          Ok(_) => {
+                                            let _ = metrics.increment_counter("updates_successful", 1).await;
+                                          },
+                                          Err(ref error) => {
                                             let _ = metrics.increment_counter("updates_failed", 1).await;
                                             log::error!("error processing update: {error:?}");
-
-                                       },
-                                   }
+                                          },
+                                       }
+                                      (result, update.clone())
                                     })).await;
 
                                     // Send batch completion notification.
                                     if let Some(ref update_completed_sender) = update_completed_sender {
                                         let update_completed_sender = update_completed_sender.lock().await;
+                                        let errors: Vec<(Update, crate::error::Error)> = results.into_iter().filter(|(result, _)| result.is_err()).map(|(result, update)| (update, result.unwrap_err(),)).collect();
+                                        let error = if errors.is_empty() { None } else { Some(errors)};
                                         #[cfg(feature = "unbounded")]
-                                        let _ = update_completed_sender.send((update_id, None));
+                                        let _ = update_completed_sender.send((update_id,error));
                                         #[cfg(not(feature = "unbounded"))]
-                                        if let Err(error) = update_completed_sender.try_send((update_id, None)) {
+                                        if let Err(error) = update_completed_sender.try_send((update_id, error)) {
                                             log::error!("failed to send update completed notification: {error:?}");
                                         }
                                     }
@@ -739,10 +739,10 @@ async fn process_update(
 pub struct PipelineBuilder {
     #[cfg(feature = "unbounded")]
     pub update_completed_sender:
-        Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
+        Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
     #[cfg(not(feature = "unbounded"))]
     pub update_completed_sender:
-        Option<Arc<Mutex<Sender<(UpdateId, Option<(Update, crate::error::Error)>)>>>>,
+        Option<Arc<Mutex<Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
     pub datasources: Vec<(DatasourceId, Arc<dyn Datasource + Send + Sync>)>,
     pub account_pipes: Vec<Box<dyn AccountPipes>>,
     pub account_deletion_pipes: Vec<Box<dyn AccountDeletionPipes>>,
@@ -906,19 +906,20 @@ impl PipelineBuilder {
         self
     }
 
-    /// Adds an account pipe with filters to process account updates selectively.
+    /// Adds an account pipe with filters to process account updates
+    /// selectively.
     ///
-    /// This method creates an account pipe that only processes updates that pass
-    /// all the specified filters. Filters can be used to selectively process
-    /// updates based on criteria such as datasource ID, account properties, or
-    /// other custom logic.
+    /// This method creates an account pipe that only processes updates that
+    /// pass all the specified filters. Filters can be used to selectively
+    /// process updates based on criteria such as datasource ID, account
+    /// properties, or other custom logic.
     ///
     /// # Parameters
     ///
     /// - `decoder`: An `AccountDecoder` that decodes the account data
     /// - `processor`: A `Processor` that processes the decoded account data
-    /// - `filters`: A collection of filters that determine which account updates
-    ///   should be processed
+    /// - `filters`: A collection of filters that determine which account
+    ///   updates should be processed
     ///
     /// # Example
     ///
@@ -989,18 +990,19 @@ impl PipelineBuilder {
         self
     }
 
-    /// Adds an account deletion pipe with filters to handle account deletion events selectively.
+    /// Adds an account deletion pipe with filters to handle account deletion
+    /// events selectively.
     ///
-    /// This method creates an account deletion pipe that only processes deletion
-    /// events that pass all the specified filters. Filters can be used to
-    /// selectively process deletions based on criteria such as datasource ID or
-    /// other custom logic.
+    /// This method creates an account deletion pipe that only processes
+    /// deletion events that pass all the specified filters. Filters can be
+    /// used to selectively process deletions based on criteria such as
+    /// datasource ID or other custom logic.
     ///
     /// # Parameters
     ///
     /// - `processor`: A `Processor` that processes account deletion events
-    /// - `filters`: A collection of filters that determine which account deletion
-    ///   events should be processed
+    /// - `filters`: A collection of filters that determine which account
+    ///   deletion events should be processed
     ///
     /// # Example
     ///
@@ -1068,12 +1070,13 @@ impl PipelineBuilder {
         self
     }
 
-    /// Adds a block details pipe with filters to handle block details updates selectively.
+    /// Adds a block details pipe with filters to handle block details updates
+    /// selectively.
     ///
-    /// This method creates a block details pipe that only processes updates that
-    /// pass all the specified filters. Filters can be used to selectively process
-    /// block details updates based on criteria such as datasource ID, block height,
-    /// or other custom logic.
+    /// This method creates a block details pipe that only processes updates
+    /// that pass all the specified filters. Filters can be used to
+    /// selectively process block details updates based on criteria such as
+    /// datasource ID, block height, or other custom logic.
     ///
     /// # Parameters
     ///
@@ -1151,12 +1154,13 @@ impl PipelineBuilder {
         self
     }
 
-    /// Adds an instruction pipe with filters to process instructions selectively.
+    /// Adds an instruction pipe with filters to process instructions
+    /// selectively.
     ///
     /// This method creates an instruction pipe that only processes instructions
     /// that pass all the specified filters. Filters can be used to selectively
-    /// process instructions based on criteria such as datasource ID, instruction
-    /// type, or other custom logic.
+    /// process instructions based on criteria such as datasource ID,
+    /// instruction type, or other custom logic.
     ///
     /// # Parameters
     ///
@@ -1248,12 +1252,13 @@ impl PipelineBuilder {
         self
     }
 
-    /// Adds a transaction pipe with filters for processing full transaction data selectively.
+    /// Adds a transaction pipe with filters for processing full transaction
+    /// data selectively.
     ///
     /// This method creates a transaction pipe that only processes transactions
     /// that pass all the specified filters. Filters can be used to selectively
-    /// process transactions based on criteria such as datasource ID, transaction
-    /// type, or other custom logic.
+    /// process transactions based on criteria such as datasource ID,
+    /// transaction type, or other custom logic.
     ///
     /// # Parameters
     ///
@@ -1407,10 +1412,10 @@ impl PipelineBuilder {
     pub fn update_completed_sender(
         mut self,
         #[cfg(feature = "unbounded")] value: Arc<
-            Mutex<UnboundedSender<(UpdateId, Option<(Update, crate::error::Error)>)>>,
+            Mutex<UnboundedSender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>,
         >,
         #[cfg(not(feature = "unbounded"))] value: Arc<
-            Mutex<Sender<(UpdateId, Option<(Update, crate::error::Error)>)>>,
+            Mutex<Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>,
         >,
     ) -> Self {
         self.update_completed_sender = Some(value);

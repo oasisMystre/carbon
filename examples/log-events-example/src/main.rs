@@ -43,6 +43,7 @@ pub async fn main() -> CarbonResult<()> {
         account_exclude: vec![],
         account_required: vec![RAYDIUM_CPMM_PROGRAM_ID.to_string().clone()],
         signature: None,
+        token_accounts: None,
     };
 
     let mut transaction_filters: HashMap<String, SubscribeRequestFilterTransactions> =

@@ -33,18 +33,17 @@
 //! - Ensure implementations handle errors gracefully, especially when fetching
 //!   data and sending updates to the pipeline.
 
-use solana_clock::Slot;
-use solana_program::hash::Hash;
-use solana_transaction_status::Rewards;
 use {
     crate::{error::CarbonResult, metrics::MetricsCollection},
     async_trait::async_trait,
     chrono::{DateTime, Utc},
     solana_account::Account,
+    solana_clock::Slot,
+    solana_program::hash::Hash,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::versioned::VersionedTransaction,
-    solana_transaction_status::TransactionStatusMeta,
+    solana_transaction_status::{Rewards, TransactionStatusMeta},
     std::sync::Arc,
     tokio_util::sync::CancellationToken,
 };
@@ -238,7 +237,7 @@ impl UpdateId {
 /// - `Transaction`: Represents a transaction-related update, including
 ///   transaction metadata.
 /// - `AccountDeletion`: Represents an event where an account has been deleted.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Update {
     Account(AccountUpdate),
     Transaction(Box<TransactionUpdate>),
@@ -270,8 +269,9 @@ pub enum UpdateType {
 /// - `pubkey`: The public key of the account being updated.
 /// - `account`: The new state of the account.
 /// - `slot`: The slot number in which this account update was recorded.
-/// - `transaction_signature`: Signature of the transaction that caused the update.
-#[derive(Debug, Clone)]
+/// - `transaction_signature`: Signature of the transaction that caused the
+///   update.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AccountUpdate {
     pub pubkey: Pubkey,
     pub account: Account,
@@ -279,19 +279,25 @@ pub struct AccountUpdate {
     pub transaction_signature: Option<Signature>,
 }
 
-/// Represents the details of a Solana block, including its slot, hashes, rewards, and timing information.
+/// Represents the details of a Solana block, including its slot, hashes,
+/// rewards, and timing information.
 ///
-/// The `BlockDetails` struct encapsulates the essential information for a block,
-/// providing details about its slot, blockhashes, rewards, and other metadata.
+/// The `BlockDetails` struct encapsulates the essential information for a
+/// block, providing details about its slot, blockhashes, rewards, and other
+/// metadata.
 ///
 /// - `slot`: The slot number in which this block was recorded.
 /// - `previous_block_hash`: The hash of the previous block in the blockchain.
 /// - `block_hash`: The hash of the current block.
-/// - `rewards`: Optional rewards information associated with the block, such as staking rewards.
-/// - `num_reward_partitions`: Optional number of reward partitions in the block.
-/// - `block_time`: Optional Unix timestamp indicating when the block was processed.
-/// - `block_height`: Optional height of the block in the blockchain.#[derive(Debug, Clone)]
-#[derive(Debug, Clone)]
+/// - `rewards`: Optional rewards information associated with the block, such as
+///   staking rewards.
+/// - `num_reward_partitions`: Optional number of reward partitions in the
+///   block.
+/// - `block_time`: Optional Unix timestamp indicating when the block was
+///   processed.
+/// - `block_height`: Optional height of the block in the
+///   blockchain.#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BlockDetails {
     pub slot: u64,
     pub block_hash: Option<Hash>,
@@ -311,8 +317,9 @@ pub struct BlockDetails {
 ///
 /// - `pubkey`: The public key of the deleted account.
 /// - `slot`: The slot number in which the account was deleted.
-/// - `transaction_signature`: Signature of the transaction that caused the update.
-#[derive(Debug, Clone)]
+/// - `transaction_signature`: Signature of the transaction that caused the
+///   update.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AccountDeletion {
     pub pubkey: Pubkey,
     pub slot: u64,
@@ -338,11 +345,18 @@ pub struct AccountDeletion {
 /// - `block_time`: The Unix timestamp of when the transaction was processed.
 /// - `block_hash`: Block hash that can be used to detect a fork.
 ///
-/// Note: The `block_time` and `index` fields may not be available in all scenarios.
-#[derive(Debug, Clone)]
+/// Note: The `block_time` and `index` fields may not be available in all
+/// scenarios.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TransactionUpdate {
     pub signature: Signature,
-    pub transaction: VersionedTransaction, // TODO: replace with solana_transaction crate after 2.2.0 release
+    #[serde(
+        serialize_with = "crate::convert::serialize_transaction",
+        deserialize_with = "crate::convert::deserialize_transaction"
+    )]
+    pub transaction: VersionedTransaction,
+    #[serde(serialize_with = "crate::convert::serialize_meta")]
+    #[serde(deserialize_with = "crate::convert::deserialize_meta")]
     pub meta: TransactionStatusMeta,
     pub is_vote: bool,
     pub slot: u64,

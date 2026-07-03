@@ -6,7 +6,6 @@
 //!
 //! This module provides the `Table`, `Insert`, `Upsert`, and `Delete` traits,
 //! which are used to define and interact with PostgreSQL tables.
-//!
 
 use crate::error::CarbonResult;
 

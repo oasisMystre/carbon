@@ -34,7 +34,7 @@ use {
         compiled_instruction::CompiledInstruction, v0::LoadedAddresses, VersionedMessage,
     },
     solana_pubkey::Pubkey,
-    solana_transaction_context::TransactionReturnData,
+    solana_transaction_context::transaction::TransactionReturnData,
     solana_transaction_status::{
         option_serializer::OptionSerializer, InnerInstruction, InnerInstructions, Reward,
         TransactionStatusMeta, TransactionTokenBalance, UiInstruction, UiLoadedAddresses,
@@ -91,6 +91,42 @@ pub fn extract_instructions_with_metadata(
             );
         }
         VersionedMessage::V0(v0) => {
+            let mut account_keys: Vec<Pubkey> = Vec::with_capacity(
+                v0.account_keys.len()
+                    + meta.loaded_addresses.writable.len()
+                    + meta.loaded_addresses.readonly.len(),
+            );
+
+            account_keys.extend_from_slice(&v0.account_keys);
+            account_keys.extend_from_slice(&meta.loaded_addresses.writable);
+            account_keys.extend_from_slice(&meta.loaded_addresses.readonly);
+
+            process_instructions(
+                &account_keys,
+                &v0.instructions,
+                &meta.inner_instructions,
+                transaction_metadata,
+                &mut instructions_with_metadata,
+                |key, idx| {
+                    let num_static = v0.account_keys.len();
+                    if idx < num_static {
+                        let num_signers = v0.header.num_required_signatures as usize;
+                        let num_readonly_signed = v0.header.num_readonly_signed_accounts as usize;
+                        let num_readonly_unsigned =
+                            v0.header.num_readonly_unsigned_accounts as usize;
+                        if idx < num_signers {
+                            idx < num_signers - num_readonly_signed
+                        } else {
+                            idx < num_static - num_readonly_unsigned
+                        }
+                    } else {
+                        meta.loaded_addresses.writable.contains(key)
+                    }
+                },
+                |_, idx| idx < v0.header.num_required_signatures as usize,
+            );
+        },
+        VersionedMessage::V1(v0) => {
             let mut account_keys: Vec<Pubkey> = Vec::with_capacity(
                 v0.account_keys.len()
                     + meta.loaded_addresses.writable.len()
@@ -460,6 +496,7 @@ pub fn transaction_metadata_from_original_meta(
                     post_balance: rewards.post_balance,
                     reward_type: rewards.reward_type,
                     commission: rewards.commission,
+                    commission_bps: rewards.commission_bps,
                 })
                 .collect::<Vec<Reward>>(),
         ),

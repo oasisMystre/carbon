@@ -35,9 +35,9 @@
 //!
 //! - **[`filter`]**: Provides a flexible filtering system that allows selective
 //!   processing of updates based on various criteria such as datasource ID,
-//!   update content, or custom logic. Filters can be applied to different
-//!   types of updates (accounts, instructions, transactions, account deletions,
-//!   and block details) to control which updates are processed by specific pipes.
+//!   update content, or custom logic. Filters can be applied to different types
+//!   of updates (accounts, instructions, transactions, account deletions, and
+//!   block details) to control which updates are processed by specific pipes.
 //!
 //! - **[`instruction`]**: Supports instruction parsing and processing within
 //!   transactions. This module includes structures and traits for decoding and
@@ -53,9 +53,9 @@
 //!   complete data processing solution.
 //!
 //! - **[`postgres`]**: Provides support for PostgreSQL database operations,
-//!   including table definitions, insert, upsert, and delete operations.
-//!   This module is designed to be used in conjunction with the `sqlx` crate
-//!   for database interactions.
+//!   including table definitions, insert, upsert, and delete operations. This
+//!   module is designed to be used in conjunction with the `sqlx` crate for
+//!   database interactions.
 //!
 //! - **[`processor`]**: Contains traits and implementations for processing data
 //!   in the pipeline. This module allows for the creation of custom data
@@ -128,6 +128,7 @@ pub mod account_deletion;
 pub mod account_utils;
 mod block_details;
 pub mod collection;
+mod convert;
 pub mod datasource;
 pub mod deserialize;
 pub mod error;
