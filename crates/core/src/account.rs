@@ -52,7 +52,8 @@
 
 use {
     crate::{
-        error::CarbonResult, filter::Filter, metrics::MetricsCollection, processor::Processor,
+        datasource::UpdateId, error::CarbonResult, filter::Filter, metrics::MetricsCollection,
+        processor::Processor,
     },
     async_trait::async_trait,
     solana_pubkey::Pubkey,
@@ -177,6 +178,7 @@ pub trait AccountPipes: Send + Sync {
     async fn run(
         &mut self,
         account_with_metadata: (AccountMetadata, solana_account::Account),
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
 
@@ -188,6 +190,7 @@ impl<T: Send> AccountPipes for AccountPipe<T> {
     async fn run(
         &mut self,
         account_with_metadata: (AccountMetadata, solana_account::Account),
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         log::trace!("AccountPipe::run(account_with_metadata: {account_with_metadata:?}, metrics)",);
@@ -200,6 +203,7 @@ impl<T: Send> AccountPipes for AccountPipe<T> {
                         decoded_account,
                         account_with_metadata.1,
                     ),
+                    update_id,
                     metrics.clone(),
                 )
                 .await?;

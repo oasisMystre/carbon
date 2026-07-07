@@ -32,6 +32,7 @@
 use {
     crate::{
         collection::InstructionDecoderCollection,
+        datasource::UpdateId,
         error::CarbonResult,
         filter::Filter,
         instruction::{DecodedInstruction, InstructionMetadata, NestedInstruction},
@@ -291,6 +292,7 @@ pub trait TransactionPipes<'a>: Send + Sync {
         &mut self,
         transaction_metadata: Arc<TransactionMetadata>,
         instructions: &[NestedInstruction],
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
 
@@ -307,6 +309,7 @@ where
         &mut self,
         transaction_metadata: Arc<TransactionMetadata>,
         instructions: &[NestedInstruction],
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         log::trace!("TransactionPipe::run(instructions: {instructions:?}, metrics)",);
@@ -324,6 +327,7 @@ where
         self.processor
             .process(
                 (transaction_metadata, unnested_instructions, matched_data),
+                update_id,
                 metrics,
             )
             .await?;

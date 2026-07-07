@@ -50,10 +50,6 @@
 //! - Proper metric collection and flushing are essential for monitoring
 //!   pipeline performance, especially in production environments.
 
-#[cfg(not(feature = "unbounded"))]
-use tokio::sync::mpsc::Sender;
-#[cfg(feature = "unbounded")]
-use tokio::sync::mpsc::UnboundedSender;
 use {
     crate::{
         account::{
@@ -78,7 +74,6 @@ use {
     core::time,
     serde::de::DeserializeOwned,
     std::{convert::TryInto, sync::Arc, time::Instant},
-    tokio::sync::Mutex,
     tokio_util::sync::CancellationToken,
 };
 
@@ -214,18 +209,15 @@ pub const DEFAULT_CHANNEL_BUFFER_SIZE: usize = 10_000;
 ///   metrics are flushed. If `None`, a default interval (usually 5 seconds) is
 ///   used.
 pub struct Pipeline {
-    #[cfg(feature = "unbounded")]
-    pub update_completed_sender:
-        Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
-    #[cfg(not(feature = "unbounded"))]
-    pub update_completed_sender:
-        Option<Arc<Mutex<Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
+    pub update_completed_sender: Option<
+        Arc<tokio::sync::broadcast::Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>,
+    >,
     pub datasources: Vec<(DatasourceId, Arc<dyn Datasource + Send + Sync>)>,
-    pub account_pipes: Arc<Mutex<Vec<Box<dyn AccountPipes>>>>,
-    pub account_deletion_pipes: Arc<Mutex<Vec<Box<dyn AccountDeletionPipes>>>>,
-    pub block_details_pipes: Arc<Mutex<Vec<Box<dyn BlockDetailsPipes>>>>,
-    pub instruction_pipes: Arc<Mutex<Vec<Box<dyn for<'a> InstructionPipes<'a>>>>>,
-    pub transaction_pipes: Arc<Mutex<Vec<Box<dyn for<'a> TransactionPipes<'a>>>>>,
+    pub account_pipes: Vec<Box<dyn AccountPipes>>,
+    pub account_deletion_pipes: Vec<Box<dyn AccountDeletionPipes>>,
+    pub block_details_pipes: Vec<Box<dyn BlockDetailsPipes>>,
+    pub instruction_pipes: Vec<Box<dyn for<'a> InstructionPipes<'a>>>,
+    pub transaction_pipes: Vec<Box<dyn for<'a> TransactionPipes<'a>>>,
     pub metrics: Arc<MetricsCollection>,
     pub metrics_flush_interval: Option<u64>,
     pub datasource_cancellation_token: Option<CancellationToken>,
@@ -341,11 +333,11 @@ impl Pipeline {
     /// - The `run` method operates in an infinite loop, handling updates until
     ///   a termination condition occurs.
     pub async fn run(&mut self) -> CarbonResult<()> {
-        let num_account_pipes = self.account_pipes.lock().await.len();
-        let num_account_deletion_pipes = self.account_deletion_pipes.lock().await.len();
-        let num_block_details_pipes = self.block_details_pipes.lock().await.len();
-        let num_instruction_pipes = self.instruction_pipes.lock().await.len();
-        let num_transaction_pipes = self.transaction_pipes.lock().await.len();
+        let num_account_pipes = self.account_pipes.len();
+        let num_account_deletion_pipes = self.account_deletion_pipes.len();
+        let num_block_details_pipes = self.block_details_pipes.len();
+        let num_instruction_pipes = self.instruction_pipes.len();
+        let num_transaction_pipes = self.transaction_pipes.len();
         log::info!("starting pipeline. num_datasources: {}, num_metrics: {}, num_account_pipes: {num_account_pipes}, num_account_deletion_pipes: {num_account_deletion_pipes}, num_block_details_pipes: {num_block_details_pipes}, num_instruction_pipes: {num_instruction_pipes}, num_transaction_pipes: {num_transaction_pipes}",
             self.datasources.len(),
             self.metrics.metrics.len(),
@@ -362,6 +354,9 @@ impl Pipeline {
             tokio::sync::mpsc::channel::<(Vec<Update>, UpdateId, DatasourceId)>(
                 self.channel_buffer_size,
             );
+
+        // #[cfg(not(feature = "unbounded"))]
+        // let batch_slot = Arc::new(Semaphore::new(self.channel_buffer_size));
 
         let datasource_cancellation_token = self
             .datasource_cancellation_token
@@ -396,8 +391,13 @@ impl Pipeline {
             self.metrics_flush_interval.unwrap_or(5),
         ));
 
+        let mut handles: Vec<tokio::task::JoinHandle<()>> = vec![];
+
         loop {
+            handles.retain(|handle| !handle.is_finished());
+
             tokio::select! {
+                biased;
                 _ = datasource_cancellation_token.cancelled() => {
                     log::trace!("datasource cancellation token cancelled, shutting down.");
                     self.metrics.flush_metrics().await?;
@@ -428,71 +428,53 @@ impl Pipeline {
                                 .await?;
 
                             let update_id = update_id.clone();
+                            let mut results = Vec::with_capacity(updates.len());
 
-                            // Spawn each update concurrently in its own tokio task.
-                            // Each task returns (Update, CarbonResult<()>, Duration) —
-                            // the Update is needed for error notifications.
-                            tokio::spawn({
-                                let metrics = self.metrics.clone();
-                                let account_pipes = self.account_pipes.clone();
-                                let instruction_pipes = self.instruction_pipes.clone();
-                                let transaction_pipes = self.transaction_pipes.clone();
-                                let block_details_pipes = self.block_details_pipes.clone();
-                                let account_deletion_pipes = self.account_deletion_pipes.clone();
-                                let update_completed_sender = self.update_completed_sender.clone();
+                            log::info!("updates received updates={}", updates.len());
 
-                                let datasource_id = datasource_id.clone();
+                            for update in updates {
+                                let task_start = Instant::now();
+                                log::info!("running process");
+                                let result =  self.process(
+                                  update.clone(),
+                                  update_id.clone(),
+                                  datasource_id.clone(),
+                                ).await;
+                                log::info!("finish process");
 
-                                async move {
-                                    let results = futures::future::join_all(updates.iter().map(|update| async {
-                                        let task_start = Instant::now();
-                                        let result = process_update(
-                                            update.clone(),
-                                            datasource_id.clone(),
-                                            account_pipes.clone(),
-                                            account_deletion_pipes.clone(),
-                                            block_details_pipes.clone(),
-                                            instruction_pipes.clone(),
-                                            transaction_pipes.clone(),
-                                            metrics.clone(),
-                                        )
-                                        .await;
+                                let ns = task_start.elapsed().as_nanos() as f64;
+                                let _ =self.metrics.record_histogram("updates_process_time_nanoseconds", ns).await;
+                                let _ = self.metrics.record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0).await;
 
-                                        let ns = task_start.elapsed().as_nanos() as f64;
-                                        let _ = metrics
-                                            .record_histogram("updates_process_time_nanoseconds", ns)
-                                            .await;
-                                        let _ = metrics
-                                            .record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0)
-                                            .await;
-                                        match result {
-                                          Ok(_) => {
-                                            let _ = metrics.increment_counter("updates_successful", 1).await;
-                                          },
-                                          Err(ref error) => {
-                                            let _ = metrics.increment_counter("updates_failed", 1).await;
-                                            log::error!("error processing update: {error:?}");
-                                          },
-                                       }
-                                      (result, update.clone())
-                                    })).await;
-
-                                    // Send batch completion notification.
-                                    if let Some(ref update_completed_sender) = update_completed_sender {
-                                        let update_completed_sender = update_completed_sender.lock().await;
-                                        let errors: Vec<(Update, crate::error::Error)> = results.into_iter().filter(|(result, _)| result.is_err()).map(|(result, update)| (update, result.unwrap_err(),)).collect();
-                                        let error = if errors.is_empty() { None } else { Some(errors)};
-                                        #[cfg(feature = "unbounded")]
-                                        let _ = update_completed_sender.send((update_id,error));
-                                        #[cfg(not(feature = "unbounded"))]
-                                        if let Err(error) = update_completed_sender.try_send((update_id, error)) {
-                                            log::error!("failed to send update completed notification: {error:?}");
-                                        }
+                                match &result {
+                                    Ok(_) => { let _ = self.metrics.increment_counter("updates_successful", 1).await; }
+                                     Err(error) => {
+                                            let _ = self.metrics.increment_counter("updates_failed", 1).await;
+                                            log::error!("error processing update: {error:#}");
                                     }
                                 }
-                            });
+
+                                results.push((result, update));
+                            }
+
+                            log::info!("updates completed");
 
 
+
+                                if let Some(ref update_completed_sender) = self.update_completed_sender {
+
+                                    let errors: Vec<(Update, crate::error::Error)> = results
+                                        .into_iter()
+                                        .filter(|(res, _)| res.is_err())
+                                        .map(|(res, upd)| (upd, res.unwrap_err()))
+                                        .collect();
+
+                                    let error = if errors.is_empty() { None } else { Some(errors) };
+
+                                    if let Err(error) = update_completed_sender.send((update_id, error)) {
+                                        log::error!("failed to send update completed notification: {error:#}")
+                                    }
+                                }
 
                             self
                                 .metrics.update_gauge("updates_queued", update_receiver.len() as f64)
@@ -509,153 +491,144 @@ impl Pipeline {
             }
         }
 
+        futures::future::join_all(handles).await;
+
         log::info!("pipeline shutdown complete.");
 
         Ok(())
     }
 
-    /// Processes a single update and routes it through the appropriate pipeline
-    /// stages. This is a thin wrapper around [`process_update`] for backward
-    /// compatibility when processing updates outside of the batch pipeline.
-    #[allow(dead_code)]
-    async fn process(&mut self, update: Update, datasource_id: DatasourceId) -> CarbonResult<()> {
-        process_update(
-            update,
-            datasource_id,
-            self.account_pipes.clone(),
-            self.account_deletion_pipes.clone(),
-            self.block_details_pipes.clone(),
-            self.instruction_pipes.clone(),
-            self.transaction_pipes.clone(),
-            self.metrics.clone(),
-        )
-        .await
-    }
-}
+    /// Processes a single update concurrently by routing it through the
+    /// appropriate pipeline pipes. This is the core processing logic
+    /// extracted as a standalone function so it can be called from spawned
+    /// tokio tasks for concurrent batch processing.
+    async fn process(
+        &mut self,
+        update: Update,
+        update_id: UpdateId,
+        datasource_id: DatasourceId,
+    ) -> CarbonResult<()> {
+        log::trace!("process_update(update: {update:?}, datasource_id: {datasource_id:?})");
+        match update {
+            Update::Account(account_update) => {
+                log::info!("account={:?}", account_update.pubkey);
+                let account_metadata = AccountMetadata {
+                    slot: account_update.slot,
+                    pubkey: account_update.pubkey,
+                    transaction_signature: account_update.transaction_signature,
+                };
+                // Clone once before iterating pipes.
+                let input = (account_metadata, account_update.account);
 
-/// Processes a single update concurrently by routing it through the appropriate
-/// pipeline pipes. This is the core processing logic extracted as a standalone
-/// function so it can be called from spawned tokio tasks for concurrent batch
-/// processing.
-async fn process_update(
-    update: Update,
-    datasource_id: DatasourceId,
-    account_pipes: Arc<Mutex<Vec<Box<dyn AccountPipes>>>>,
-    account_deletion_pipes: Arc<Mutex<Vec<Box<dyn AccountDeletionPipes>>>>,
-    block_details_pipes: Arc<Mutex<Vec<Box<dyn BlockDetailsPipes>>>>,
-    instruction_pipes: Arc<Mutex<Vec<Box<dyn for<'a> InstructionPipes<'a>>>>>,
-    transaction_pipes: Arc<Mutex<Vec<Box<dyn for<'a> TransactionPipes<'a>>>>>,
-    metrics: Arc<MetricsCollection>,
-) -> CarbonResult<()> {
-    log::trace!("process_update(update: {update:?}, datasource_id: {datasource_id:?})");
-    match update {
-        Update::Account(account_update) => {
-            let account_metadata = AccountMetadata {
-                slot: account_update.slot,
-                pubkey: account_update.pubkey,
-                transaction_signature: account_update.transaction_signature,
-            };
-            // Clone once before iterating pipes.
-            let input = (account_metadata, account_update.account);
-
-            let mut pipes = account_pipes.lock().await;
-            for pipe in pipes.iter_mut() {
-                if pipe
-                    .filters()
-                    .iter()
-                    .all(|filter| filter.filter_account(&datasource_id, &input.0, &input.1))
-                {
-                    pipe.run(input.clone(), metrics.clone()).await?;
+                for pipe in self.account_pipes.iter_mut() {
+                    if pipe
+                        .filters()
+                        .iter()
+                        .all(|filter| filter.filter_account(&datasource_id, &input.0, &input.1))
+                    {
+                        pipe.run(input.clone(), update_id.clone(), self.metrics.clone())
+                            .await?;
+                    }
                 }
+
+                self.metrics
+                    .increment_counter("account_updates_processed", 1)
+                    .await?;
             }
+            Update::Transaction(transaction_update) => {
+                let transaction_metadata = Arc::new((*transaction_update).clone().try_into()?);
 
-            metrics
-                .increment_counter("account_updates_processed", 1)
-                .await?;
-        }
-        Update::Transaction(transaction_update) => {
-            let transaction_metadata = Arc::new((*transaction_update).clone().try_into()?);
+                let instructions_with_metadata: InstructionsWithMetadata =
+                    transformers::extract_instructions_with_metadata(
+                        &transaction_metadata,
+                        &transaction_update,
+                    )?;
 
-            let instructions_with_metadata: InstructionsWithMetadata =
-                transformers::extract_instructions_with_metadata(
-                    &transaction_metadata,
-                    &transaction_update,
-                )?;
+                let nested_instructions: NestedInstructions = instructions_with_metadata.into();
 
-            let nested_instructions: NestedInstructions = instructions_with_metadata.into();
-
-            {
-                let mut pipes = instruction_pipes.lock().await;
-                for pipe in pipes.iter_mut() {
-                    for nested_instruction in nested_instructions.iter() {
-                        if pipe.filters().iter().all(|filter| {
-                            filter.filter_instruction(&datasource_id, nested_instruction)
-                        }) {
-                            pipe.run(nested_instruction, metrics.clone()).await?;
+                {
+                    for pipe in self.instruction_pipes.iter_mut() {
+                        for nested_instruction in nested_instructions.iter() {
+                            if pipe.filters().iter().all(|filter| {
+                                filter.filter_instruction(&datasource_id, nested_instruction)
+                            }) {
+                                pipe.run(
+                                    nested_instruction,
+                                    update_id.clone(),
+                                    self.metrics.clone(),
+                                )
+                                .await?;
+                            }
                         }
                     }
                 }
-            }
 
-            {
-                let mut pipes = transaction_pipes.lock().await;
-                for pipe in pipes.iter_mut() {
+                {
+                    for pipe in self.transaction_pipes.iter_mut() {
+                        if pipe.filters().iter().all(|filter| {
+                            filter.filter_transaction(
+                                &datasource_id,
+                                &transaction_metadata,
+                                &nested_instructions,
+                            )
+                        }) {
+                            pipe.run(
+                                transaction_metadata.clone(),
+                                &nested_instructions,
+                                update_id.clone(),
+                                self.metrics.clone(),
+                            )
+                            .await?;
+                        }
+                    }
+                }
+
+                self.metrics
+                    .increment_counter("transaction_updates_processed", 1)
+                    .await?;
+            }
+            Update::AccountDeletion(account_deletion) => {
+                for pipe in self.account_deletion_pipes.iter_mut() {
                     if pipe.filters().iter().all(|filter| {
-                        filter.filter_transaction(
-                            &datasource_id,
-                            &transaction_metadata,
-                            &nested_instructions,
-                        )
+                        filter.filter_account_deletion(&datasource_id, &account_deletion)
                     }) {
                         pipe.run(
-                            transaction_metadata.clone(),
-                            &nested_instructions,
-                            metrics.clone(),
+                            account_deletion.clone(),
+                            update_id.clone(),
+                            self.metrics.clone(),
                         )
                         .await?;
                     }
                 }
-            }
 
-            metrics
-                .increment_counter("transaction_updates_processed", 1)
-                .await?;
-        }
-        Update::AccountDeletion(account_deletion) => {
-            let mut pipes = account_deletion_pipes.lock().await;
-            for pipe in pipes.iter_mut() {
-                if pipe
-                    .filters()
-                    .iter()
-                    .all(|filter| filter.filter_account_deletion(&datasource_id, &account_deletion))
-                {
-                    pipe.run(account_deletion.clone(), metrics.clone()).await?;
+                self.metrics
+                    .increment_counter("account_deletions_processed", 1)
+                    .await?;
+            }
+            Update::BlockDetails(block_details) => {
+                for pipe in self.block_details_pipes.iter_mut() {
+                    if pipe
+                        .filters()
+                        .iter()
+                        .all(|filter| filter.filter_block_details(&datasource_id, &block_details))
+                    {
+                        pipe.run(
+                            block_details.clone(),
+                            update_id.clone(),
+                            self.metrics.clone(),
+                        )
+                        .await?;
+                    }
                 }
+
+                self.metrics
+                    .increment_counter("block_details_processed", 1)
+                    .await?;
             }
+        };
 
-            metrics
-                .increment_counter("account_deletions_processed", 1)
-                .await?;
-        }
-        Update::BlockDetails(block_details) => {
-            let mut pipes = block_details_pipes.lock().await;
-            for pipe in pipes.iter_mut() {
-                if pipe
-                    .filters()
-                    .iter()
-                    .all(|filter| filter.filter_block_details(&datasource_id, &block_details))
-                {
-                    pipe.run(block_details.clone(), metrics.clone()).await?;
-                }
-            }
-
-            metrics
-                .increment_counter("block_details_processed", 1)
-                .await?;
-        }
-    };
-
-    Ok(())
+        Ok(())
+    }
 }
 
 /// A builder for constructing a `Pipeline` instance with customized data
@@ -737,12 +710,9 @@ async fn process_update(
 ///   your application.
 #[derive(Default)]
 pub struct PipelineBuilder {
-    #[cfg(feature = "unbounded")]
-    pub update_completed_sender:
-        Option<Arc<Mutex<UnboundedSender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
-    #[cfg(not(feature = "unbounded"))]
-    pub update_completed_sender:
-        Option<Arc<Mutex<Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>>>,
+    pub update_completed_sender: Option<
+        Arc<tokio::sync::broadcast::Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>,
+    >,
     pub datasources: Vec<(DatasourceId, Arc<dyn Datasource + Send + Sync>)>,
     pub account_pipes: Vec<Box<dyn AccountPipes>>,
     pub account_deletion_pipes: Vec<Box<dyn AccountDeletionPipes>>,
@@ -1411,11 +1381,8 @@ impl PipelineBuilder {
 
     pub fn update_completed_sender(
         mut self,
-        #[cfg(feature = "unbounded")] value: Arc<
-            Mutex<UnboundedSender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>,
-        >,
-        #[cfg(not(feature = "unbounded"))] value: Arc<
-            Mutex<Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>>,
+        value: Arc<
+            tokio::sync::broadcast::Sender<(UpdateId, Option<Vec<(Update, crate::error::Error)>>)>,
         >,
     ) -> Self {
         self.update_completed_sender = Some(value);
@@ -1461,16 +1428,16 @@ impl PipelineBuilder {
     pub fn build(self) -> CarbonResult<Pipeline> {
         log::trace!("build(self)");
         Ok(Pipeline {
-            update_completed_sender: self.update_completed_sender,
-            datasources: self.datasources,
-            account_pipes: Arc::new(Mutex::new(self.account_pipes)),
-            account_deletion_pipes: Arc::new(Mutex::new(self.account_deletion_pipes)),
-            block_details_pipes: Arc::new(Mutex::new(self.block_details_pipes)),
-            instruction_pipes: Arc::new(Mutex::new(self.instruction_pipes)),
-            transaction_pipes: Arc::new(Mutex::new(self.transaction_pipes)),
-            shutdown_strategy: self.shutdown_strategy,
             metrics: Arc::new(self.metrics),
+            datasources: self.datasources,
+            account_pipes: self.account_pipes,
+            instruction_pipes: self.instruction_pipes,
+            transaction_pipes: self.transaction_pipes,
+            shutdown_strategy: self.shutdown_strategy,
+            block_details_pipes: self.block_details_pipes,
             metrics_flush_interval: self.metrics_flush_interval,
+            account_deletion_pipes: self.account_deletion_pipes,
+            update_completed_sender: self.update_completed_sender,
             datasource_cancellation_token: self.datasource_cancellation_token,
             #[cfg(not(feature = "unbounded"))]
             channel_buffer_size: self.channel_buffer_size,

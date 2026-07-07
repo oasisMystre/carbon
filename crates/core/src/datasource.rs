@@ -230,6 +230,18 @@ impl UpdateId {
     }
 }
 
+impl ToString for UpdateId {
+    fn to_string(&self) -> String {
+        self.0.clone()
+    }
+}
+
+impl ToString for &UpdateId {
+    fn to_string(&self) -> String {
+        self.0.clone()
+    }
+}
+
 /// Represents a data update in the `carbon-core` pipeline, encompassing
 /// different update types.
 ///

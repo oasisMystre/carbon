@@ -1,6 +1,9 @@
 use {
     crate::{
-        datasource::BlockDetails, error::CarbonResult, filter::Filter, metrics::MetricsCollection,
+        datasource::{BlockDetails, UpdateId},
+        error::CarbonResult,
+        filter::Filter,
+        metrics::MetricsCollection,
         processor::Processor,
     },
     async_trait::async_trait,
@@ -42,6 +45,7 @@ pub trait BlockDetailsPipes: Send + Sync {
     async fn run(
         &mut self,
         block_details: BlockDetails,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
 
@@ -53,11 +57,14 @@ impl BlockDetailsPipes for BlockDetailsPipe {
     async fn run(
         &mut self,
         block_details: BlockDetails,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         log::trace!("Block details::run(block_details: {block_details:?}, metrics)",);
 
-        self.processor.process(block_details, metrics).await?;
+        self.processor
+            .process(block_details, update_id, metrics)
+            .await?;
 
         Ok(())
     }

@@ -21,7 +21,7 @@
 
 use {
     crate::{
-        deserialize::CarbonDeserialize, error::CarbonResult, filter::Filter,
+        datasource::UpdateId, deserialize::CarbonDeserialize, error::CarbonResult, filter::Filter,
         metrics::MetricsCollection, processor::Processor, transaction::TransactionMetadata,
     },
     async_trait::async_trait,
@@ -330,6 +330,7 @@ pub trait InstructionPipes<'a>: Send + Sync {
     async fn run(
         &mut self,
         nested_instruction: &NestedInstruction,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
     fn filters(&self) -> &Vec<Box<dyn Filter + Send + Sync + 'static>>;
@@ -340,6 +341,7 @@ impl<T: Send + 'static> InstructionPipes<'_> for InstructionPipe<T> {
     async fn run(
         &mut self,
         nested_instruction: &NestedInstruction,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         log::trace!("InstructionPipe::run(nested_instruction: {nested_instruction:?}, metrics)",);
@@ -356,13 +358,15 @@ impl<T: Send + 'static> InstructionPipes<'_> for InstructionPipe<T> {
                         nested_instruction.inner_instructions.clone(),
                         nested_instruction.instruction.clone(),
                     ),
+                    update_id.clone(),
                     metrics.clone(),
                 )
                 .await?;
         }
 
         for nested_inner_instruction in nested_instruction.inner_instructions.iter() {
-            self.run(nested_inner_instruction, metrics.clone()).await?;
+            self.run(nested_inner_instruction, update_id.clone(), metrics.clone())
+                .await?;
         }
 
         Ok(())

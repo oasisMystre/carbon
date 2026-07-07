@@ -10,8 +10,11 @@
 
 use {
     crate::{
-        datasource::AccountDeletion, error::CarbonResult, filter::Filter,
-        metrics::MetricsCollection, processor::Processor,
+        datasource::{AccountDeletion, UpdateId},
+        error::CarbonResult,
+        filter::Filter,
+        metrics::MetricsCollection,
+        processor::Processor,
     },
     async_trait::async_trait,
     std::sync::Arc,
@@ -95,6 +98,7 @@ pub trait AccountDeletionPipes: Send + Sync {
     async fn run(
         &mut self,
         account_deletion: AccountDeletion,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
 
@@ -106,11 +110,14 @@ impl AccountDeletionPipes for AccountDeletionPipe {
     async fn run(
         &mut self,
         account_deletion: AccountDeletion,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         log::trace!("AccountDeletionPipe::run(account_deletion: {account_deletion:?}, metrics)",);
 
-        self.processor.process(account_deletion, metrics).await?;
+        self.processor
+            .process(account_deletion, update_id, metrics)
+            .await?;
 
         Ok(())
     }

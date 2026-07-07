@@ -52,7 +52,7 @@
 //!   enable monitoring and alerting on key performance indicators.
 
 use {
-    crate::{error::CarbonResult, metrics::MetricsCollection},
+    crate::{datasource::UpdateId, error::CarbonResult, metrics::MetricsCollection},
     async_trait::async_trait,
     std::sync::Arc,
 };
@@ -114,6 +114,7 @@ pub trait Processor {
     async fn process(
         &mut self,
         data: Self::InputType,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()>;
 }
