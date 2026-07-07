@@ -125,7 +125,7 @@ pub fn extract_instructions_with_metadata(
                 },
                 |_, idx| idx < v0.header.num_required_signatures as usize,
             );
-        },
+        }
         VersionedMessage::V1(v0) => {
             let mut account_keys: Vec<Pubkey> = Vec::with_capacity(
                 v0.account_keys.len()

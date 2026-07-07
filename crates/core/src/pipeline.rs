@@ -72,8 +72,10 @@ use {
         transformers,
     },
     core::time,
+    futures::StreamExt,
     serde::de::DeserializeOwned,
     std::{convert::TryInto, sync::Arc, time::Instant},
+    tokio::sync::{Mutex, Semaphore},
     tokio_util::sync::CancellationToken,
 };
 
@@ -355,8 +357,18 @@ impl Pipeline {
                 self.channel_buffer_size,
             );
 
-        // #[cfg(not(feature = "unbounded"))]
-        // let batch_slot = Arc::new(Semaphore::new(self.channel_buffer_size));
+        #[cfg(not(feature = "unbounded"))]
+        let permit_semaphore = Arc::new(Semaphore::new(self.channel_buffer_size));
+
+        // Wrap pipe vectors in Arc<Mutex<>> so they can be shared across
+        // spawned tasks for concurrent per-update processing.
+        let account_pipes = Arc::new(Mutex::new(std::mem::take(&mut self.account_pipes)));
+        let account_deletion_pipes =
+            Arc::new(Mutex::new(std::mem::take(&mut self.account_deletion_pipes)));
+        let block_details_pipes =
+            Arc::new(Mutex::new(std::mem::take(&mut self.block_details_pipes)));
+        let instruction_pipes = Arc::new(Mutex::new(std::mem::take(&mut self.instruction_pipes)));
+        let transaction_pipes = Arc::new(Mutex::new(std::mem::take(&mut self.transaction_pipes)));
 
         let datasource_cancellation_token = self
             .datasource_cancellation_token
@@ -428,53 +440,100 @@ impl Pipeline {
                                 .await?;
 
                             let update_id = update_id.clone();
-                            let mut results = Vec::with_capacity(updates.len());
+                            let datasource_id = datasource_id.clone();
 
                             log::info!("updates received updates={}", updates.len());
 
-                            for update in updates {
-                                let task_start = Instant::now();
-                                log::info!("running process");
-                                let result =  self.process(
-                                  update.clone(),
-                                  update_id.clone(),
-                                  datasource_id.clone(),
-                                ).await;
-                                log::info!("finish process");
-
-                                let ns = task_start.elapsed().as_nanos() as f64;
-                                let _ =self.metrics.record_histogram("updates_process_time_nanoseconds", ns).await;
-                                let _ = self.metrics.record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0).await;
-
-                                match &result {
-                                    Ok(_) => { let _ = self.metrics.increment_counter("updates_successful", 1).await; }
-                                     Err(error) => {
-                                            let _ = self.metrics.increment_counter("updates_failed", 1).await;
-                                            log::error!("error processing update: {error:#}");
-                                    }
+                            // Acquire a permit before spawning — blocks recv()
+                            // from accepting the next batch when semaphore is full.
+                            #[cfg(not(feature = "unbounded"))]
+                            let _permit = {
+                                let permit = tokio::select! {
+                                    _ = datasource_cancellation_token.cancelled() => { break; }
+                                    p = permit_semaphore.clone().acquire_owned() => p,
+                                };
+                                match permit {
+                                    Ok(p) => p,
+                                    Err(_) => break,
                                 }
-
-                                results.push((result, update));
-                            }
-
-                            log::info!("updates completed");
+                            };
 
 
+                            #[cfg(not(feature = "unbounded"))]
+                            let channel_size = self.channel_buffer_size;
+                            #[cfg(feature = "unbounded")]
+                            let channel_size = usize::MAX;
 
-                                if let Some(ref update_completed_sender) = self.update_completed_sender {
+                            let handle = tokio::spawn({
+                                let metrics = self.metrics.clone();
+                                let account_pipes = account_pipes.clone();
+                                let account_deletion_pipes = account_deletion_pipes.clone();
+                                let block_details_pipes = block_details_pipes.clone();
+                                let instruction_pipes = instruction_pipes.clone();
+                                let transaction_pipes = transaction_pipes.clone();
+                                let update_completed_sender = self.update_completed_sender.clone();
 
-                                    let errors: Vec<(Update, crate::error::Error)> = results
-                                        .into_iter()
-                                        .filter(|(res, _)| res.is_err())
-                                        .map(|(res, upd)| (upd, res.unwrap_err()))
-                                        .collect();
+                                async move {
+                                    let results = futures::stream::iter(updates.into_iter().map(|update| {
+                                        let update_id = update_id.clone();
+                                        let datasource_id = datasource_id.clone();
+                                        let account_pipes = account_pipes.clone();
+                                        let account_deletion_pipes = account_deletion_pipes.clone();
+                                        let block_details_pipes = block_details_pipes.clone();
+                                        let instruction_pipes = instruction_pipes.clone();
+                                        let transaction_pipes = transaction_pipes.clone();
+                                        let metrics = metrics.clone();
+                                        async move {
+                                            let task_start = Instant::now();
+                                            let update_for_result = update.clone();
+                                            let result = process_update(
+                                                update,
+                                                datasource_id,
+                                                update_id,
+                                                account_pipes,
+                                                account_deletion_pipes,
+                                                block_details_pipes,
+                                                instruction_pipes,
+                                                transaction_pipes,
+                                                metrics.clone(),
+                                            ).await;
 
-                                    let error = if errors.is_empty() { None } else { Some(errors) };
+                                        let ns = task_start.elapsed().as_nanos() as f64;
+                                        let _ = metrics.record_histogram("updates_process_time_nanoseconds", ns).await;
+                                        let _ = metrics.record_histogram("updates_process_time_milliseconds", ns / 1_000_000.0).await;
 
-                                    if let Err(error) = update_completed_sender.send((update_id, error)) {
-                                        log::error!("failed to send update completed notification: {error:#}")
+                                        match &result {
+                                            Ok(_) => { let _ = metrics.increment_counter("updates_successful", 1).await; }
+                                            Err(error) => {
+                                                let _ = metrics.increment_counter("updates_failed", 1).await;
+                                                log::error!("error processing update: {error:#}");
+                                            }
+                                        }
+
+
+                                        (result, update_for_result)
+                                        }
+                                    }))
+                                    .buffer_unordered(channel_size)
+                                    .collect::<Vec<_>>().await;
+
+                                    if let Some(update_completed_sender) = &update_completed_sender {
+                                        let errors: Vec<(Update, crate::error::Error)> = results
+                                            .into_iter()
+                                            .filter(|(res, _)| res.is_err())
+                                            .map(|(res, upd)| (upd, res.unwrap_err()))
+                                            .collect();
+                                        let error = if errors.is_empty() { None } else { Some(errors) };
+                                        let _ = update_completed_sender.send((update_id, error));
                                     }
+
+                                    // Permit dropped here, freeing a slot for recv().
+                                    #[cfg(not(feature = "unbounded"))]
+                                    drop(_permit);
                                 }
+                            });
+
+                            handles.push(handle);
 
                             self
                                 .metrics.update_gauge("updates_queued", update_receiver.len() as f64)
@@ -497,138 +556,134 @@ impl Pipeline {
 
         Ok(())
     }
+}
 
-    /// Processes a single update concurrently by routing it through the
-    /// appropriate pipeline pipes. This is the core processing logic
-    /// extracted as a standalone function so it can be called from spawned
-    /// tokio tasks for concurrent batch processing.
-    async fn process(
-        &mut self,
-        update: Update,
-        update_id: UpdateId,
-        datasource_id: DatasourceId,
-    ) -> CarbonResult<()> {
-        log::trace!("process_update(update: {update:?}, datasource_id: {datasource_id:?})");
-        match update {
-            Update::Account(account_update) => {
-                log::info!("account={:?}", account_update.pubkey);
-                let account_metadata = AccountMetadata {
-                    slot: account_update.slot,
-                    pubkey: account_update.pubkey,
-                    transaction_signature: account_update.transaction_signature,
-                };
-                // Clone once before iterating pipes.
-                let input = (account_metadata, account_update.account);
+/// Standalone version of [`Pipeline::process`] that takes `Arc<Mutex<>>`
+/// pipe vectors so it can be called from spawned tasks concurrently.
+async fn process_update(
+    update: Update,
+    datasource_id: DatasourceId,
+    update_id: UpdateId,
+    account_pipes: Arc<Mutex<Vec<Box<dyn AccountPipes>>>>,
+    account_deletion_pipes: Arc<Mutex<Vec<Box<dyn AccountDeletionPipes>>>>,
+    block_details_pipes: Arc<Mutex<Vec<Box<dyn BlockDetailsPipes>>>>,
+    instruction_pipes: Arc<Mutex<Vec<Box<dyn for<'a> InstructionPipes<'a>>>>>,
+    transaction_pipes: Arc<Mutex<Vec<Box<dyn for<'a> TransactionPipes<'a>>>>>,
+    metrics: Arc<MetricsCollection>,
+) -> CarbonResult<()> {
+    log::trace!("process_update(update: {update:?}, datasource_id: {datasource_id:?})");
+    match update {
+        Update::Account(account_update) => {
+            let account_metadata = AccountMetadata {
+                slot: account_update.slot,
+                pubkey: account_update.pubkey,
+                transaction_signature: account_update.transaction_signature,
+            };
+            let input = (account_metadata, account_update.account);
 
-                for pipe in self.account_pipes.iter_mut() {
-                    if pipe
-                        .filters()
-                        .iter()
-                        .all(|filter| filter.filter_account(&datasource_id, &input.0, &input.1))
-                    {
-                        pipe.run(input.clone(), update_id.clone(), self.metrics.clone())
-                            .await?;
-                    }
+            let mut pipes = account_pipes.lock().await;
+            for pipe in pipes.iter_mut() {
+                if pipe
+                    .filters()
+                    .iter()
+                    .all(|filter| filter.filter_account(&datasource_id, &input.0, &input.1))
+                {
+                    pipe.run(input.clone(), update_id.clone(), metrics.clone())
+                        .await?;
                 }
-
-                self.metrics
-                    .increment_counter("account_updates_processed", 1)
-                    .await?;
             }
-            Update::Transaction(transaction_update) => {
-                let transaction_metadata = Arc::new((*transaction_update).clone().try_into()?);
 
-                let instructions_with_metadata: InstructionsWithMetadata =
-                    transformers::extract_instructions_with_metadata(
-                        &transaction_metadata,
-                        &transaction_update,
-                    )?;
+            metrics
+                .increment_counter("account_updates_processed", 1)
+                .await?;
+        }
+        Update::Transaction(transaction_update) => {
+            let transaction_metadata = Arc::new((*transaction_update).clone().try_into()?);
 
-                let nested_instructions: NestedInstructions = instructions_with_metadata.into();
+            let instructions_with_metadata: InstructionsWithMetadata =
+                transformers::extract_instructions_with_metadata(
+                    &transaction_metadata,
+                    &transaction_update,
+                )?;
 
-                {
-                    for pipe in self.instruction_pipes.iter_mut() {
-                        for nested_instruction in nested_instructions.iter() {
-                            if pipe.filters().iter().all(|filter| {
-                                filter.filter_instruction(&datasource_id, nested_instruction)
-                            }) {
-                                pipe.run(
-                                    nested_instruction,
-                                    update_id.clone(),
-                                    self.metrics.clone(),
-                                )
-                                .await?;
-                            }
-                        }
-                    }
-                }
+            let nested_instructions: NestedInstructions = instructions_with_metadata.into();
 
-                {
-                    for pipe in self.transaction_pipes.iter_mut() {
+            {
+                let mut pipes = instruction_pipes.lock().await;
+                for pipe in pipes.iter_mut() {
+                    for nested_instruction in nested_instructions.iter() {
                         if pipe.filters().iter().all(|filter| {
-                            filter.filter_transaction(
-                                &datasource_id,
-                                &transaction_metadata,
-                                &nested_instructions,
-                            )
+                            filter.filter_instruction(&datasource_id, nested_instruction)
                         }) {
-                            pipe.run(
-                                transaction_metadata.clone(),
-                                &nested_instructions,
-                                update_id.clone(),
-                                self.metrics.clone(),
-                            )
-                            .await?;
+                            pipe.run(nested_instruction, update_id.clone(), metrics.clone())
+                                .await?;
                         }
                     }
                 }
-
-                self.metrics
-                    .increment_counter("transaction_updates_processed", 1)
-                    .await?;
             }
-            Update::AccountDeletion(account_deletion) => {
-                for pipe in self.account_deletion_pipes.iter_mut() {
+
+            {
+                let mut pipes = transaction_pipes.lock().await;
+                for pipe in pipes.iter_mut() {
                     if pipe.filters().iter().all(|filter| {
-                        filter.filter_account_deletion(&datasource_id, &account_deletion)
+                        filter.filter_transaction(
+                            &datasource_id,
+                            &transaction_metadata,
+                            &nested_instructions,
+                        )
                     }) {
                         pipe.run(
-                            account_deletion.clone(),
+                            transaction_metadata.clone(),
+                            &nested_instructions,
                             update_id.clone(),
-                            self.metrics.clone(),
+                            metrics.clone(),
                         )
                         .await?;
                     }
                 }
-
-                self.metrics
-                    .increment_counter("account_deletions_processed", 1)
-                    .await?;
             }
-            Update::BlockDetails(block_details) => {
-                for pipe in self.block_details_pipes.iter_mut() {
-                    if pipe
-                        .filters()
-                        .iter()
-                        .all(|filter| filter.filter_block_details(&datasource_id, &block_details))
-                    {
-                        pipe.run(
-                            block_details.clone(),
-                            update_id.clone(),
-                            self.metrics.clone(),
-                        )
+
+            metrics
+                .increment_counter("transaction_updates_processed", 1)
+                .await?;
+        }
+        Update::AccountDeletion(account_deletion) => {
+            let mut pipes = account_deletion_pipes.lock().await;
+            for pipe in pipes.iter_mut() {
+                if pipe
+                    .filters()
+                    .iter()
+                    .all(|filter| filter.filter_account_deletion(&datasource_id, &account_deletion))
+                {
+                    pipe.run(account_deletion.clone(), update_id.clone(), metrics.clone())
                         .await?;
-                    }
                 }
-
-                self.metrics
-                    .increment_counter("block_details_processed", 1)
-                    .await?;
             }
-        };
 
-        Ok(())
-    }
+            metrics
+                .increment_counter("account_deletions_processed", 1)
+                .await?;
+        }
+        Update::BlockDetails(block_details) => {
+            let mut pipes = block_details_pipes.lock().await;
+            for pipe in pipes.iter_mut() {
+                if pipe
+                    .filters()
+                    .iter()
+                    .all(|filter| filter.filter_block_details(&datasource_id, &block_details))
+                {
+                    pipe.run(block_details.clone(), update_id.clone(), metrics.clone())
+                        .await?;
+                }
+            }
+
+            metrics
+                .increment_counter("block_details_processed", 1)
+                .await?;
+        }
+    };
+
+    Ok(())
 }
 
 /// A builder for constructing a `Pipeline` instance with customized data
