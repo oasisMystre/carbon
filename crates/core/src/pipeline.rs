@@ -441,9 +441,6 @@ impl Pipeline {
 
                             let update_id = update_id.clone();
                             let datasource_id = datasource_id.clone();
-
-                            log::info!("updates received updates={}", updates.len());
-
                             // Acquire a permit before spawning — blocks recv()
                             // from accepting the next batch when semaphore is full.
                             #[cfg(not(feature = "unbounded"))]
