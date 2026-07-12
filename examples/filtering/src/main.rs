@@ -142,6 +142,7 @@ impl Processor for KaminoLendingInstructionProcessor {
     async fn process(
         &mut self,
         (metadata, instruction, _nested_instructions, _): Self::InputType,
+        update_id: UpdateId,
         _metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let signature = metadata.transaction_metadata.signature;
@@ -174,6 +175,7 @@ impl Processor for KaminoLendingRealtimeAccountProcessor {
     async fn process(
         &mut self,
         data: Self::InputType,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let account = data.1;
@@ -235,6 +237,7 @@ impl Processor for KaminoLendingStartupAccountProcessor {
     async fn process(
         &mut self,
         data: Self::InputType,
+        update_id: UpdateId,
         metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let account = data.1;

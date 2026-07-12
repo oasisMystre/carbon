@@ -1,6 +1,7 @@
 use {
     async_trait::async_trait,
     carbon_core::{
+        datasource::UpdateId,
         error::CarbonResult,
         instruction::{DecodedInstruction, InstructionMetadata, NestedInstructions},
         metrics::MetricsCollection,
@@ -107,6 +108,7 @@ impl Processor for RaydiumCpmmInstructionProcessor {
     async fn process(
         &mut self,
         (metadata, _, _, _): Self::InputType,
+        update_id: UpdateId,
         _metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let logs = metadata.decode_log_events::<SwapEvent>();

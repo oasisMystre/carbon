@@ -1,27 +1,16 @@
 use {
-    async_trait::async_trait,
-    carbon_core::{
-        account::{AccountMetadata, DecodedAccount},
-        error::CarbonResult,
-        instruction::{DecodedInstruction, InstructionMetadata, NestedInstructions},
-        metrics::MetricsCollection,
-        processor::Processor,
-    },
-    carbon_kamino_lending_decoder::{
-        accounts::KaminoLendingAccount, instructions::KaminoLendingInstruction,
-        KaminoLendingDecoder, PROGRAM_ID as KAMINO_LENDING_PROGRAM_ID,
-    },
-    carbon_yellowstone_grpc_datasource::{
+    async_trait::async_trait, carbon_core::{
+        account::{AccountMetadata, DecodedAccount}, datasource::UpdateId, error::CarbonResult, instruction::{DecodedInstruction, InstructionMetadata, NestedInstructions}, metrics::MetricsCollection, processor::Processor,
+    }, carbon_kamino_lending_decoder::{
+        KaminoLendingDecoder, PROGRAM_ID as KAMINO_LENDING_PROGRAM_ID, accounts::KaminoLendingAccount, instructions::KaminoLendingInstruction,
+    }, carbon_yellowstone_grpc_datasource::{
         YellowstoneGrpcClientConfig, YellowstoneGrpcGeyserClient,
-    },
-    std::{
+    }, std::{
         collections::{HashMap, HashSet},
         env,
         sync::Arc,
         time::Duration,
-    },
-    tokio::sync::RwLock,
-    yellowstone_grpc_proto::geyser::{
+    }, tokio::sync::RwLock, yellowstone_grpc_proto::geyser::{
         CommitmentLevel, SubscribeRequest, SubscribeRequestFilterAccounts,
         SubscribeRequestFilterTransactions,
     },
@@ -112,6 +101,7 @@ impl Processor for KaminoLendingInstructionProcessor {
     async fn process(
         &mut self,
         (metadata, instruction, _nested_instructions, _): Self::InputType,
+        update_id: UpdateId,
         _metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let signature = metadata.transaction_metadata.signature;

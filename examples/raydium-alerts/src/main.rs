@@ -1,33 +1,18 @@
 use {
-    async_trait::async_trait,
-    carbon_core::{
-        account::{AccountMetadata, DecodedAccount},
-        deserialize::ArrangeAccounts,
-        error::CarbonResult,
-        instruction::{DecodedInstruction, InstructionMetadata, NestedInstructions},
-        metrics::MetricsCollection,
-        processor::Processor,
-    },
-    carbon_log_metrics::LogMetrics,
-    carbon_raydium_amm_v4_decoder::{
-        accounts::RaydiumAmmV4Account,
-        instructions::{
-            swap_base_in::SwapBaseIn, swap_base_in_v2::SwapBaseInV2, swap_base_out::SwapBaseOut,
-            swap_base_out_v2::SwapBaseOutV2, RaydiumAmmV4Instruction,
+    async_trait::async_trait, carbon_core::{
+        account::{AccountMetadata, DecodedAccount}, datasource::UpdateId, deserialize::ArrangeAccounts, error::CarbonResult, instruction::{DecodedInstruction, InstructionMetadata, NestedInstructions}, metrics::MetricsCollection, processor::Processor,
+    }, carbon_log_metrics::LogMetrics, carbon_raydium_amm_v4_decoder::{
+        PROGRAM_ID as RAYDIUM_AMM_V4_PROGRAM_ID, RaydiumAmmV4Decoder, accounts::RaydiumAmmV4Account, instructions::{
+            RaydiumAmmV4Instruction, swap_base_in::SwapBaseIn, swap_base_in_v2::SwapBaseInV2, swap_base_out::SwapBaseOut, swap_base_out_v2::SwapBaseOutV2,
         },
-        RaydiumAmmV4Decoder, PROGRAM_ID as RAYDIUM_AMM_V4_PROGRAM_ID,
-    },
-    carbon_yellowstone_grpc_datasource::{
+    }, carbon_yellowstone_grpc_datasource::{
         YellowstoneGrpcClientConfig, YellowstoneGrpcGeyserClient,
-    },
-    std::{
+    }, std::{
         collections::{HashMap, HashSet},
         env,
         sync::Arc,
         time::Duration,
-    },
-    tokio::sync::RwLock,
-    yellowstone_grpc_proto::geyser::{
+    }, tokio::sync::RwLock, yellowstone_grpc_proto::geyser::{
         CommitmentLevel, SubscribeRequest, SubscribeRequestFilterAccounts,
         SubscribeRequestFilterTransactions,
     },
@@ -125,6 +110,7 @@ impl Processor for RaydiumAmmV4InstructionProcessor {
     async fn process(
         &mut self,
         (metadata, instruction, _nested_instructions, _): Self::InputType,
+        update_id: UpdateId,
         _metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let signature = metadata.transaction_metadata.signature;
@@ -255,6 +241,7 @@ impl Processor for RaydiumAmmV4AccountProcessor {
     async fn process(
         &mut self,
         data: Self::InputType,
+        update_id: UpdateId,
         _metrics: Arc<MetricsCollection>,
     ) -> CarbonResult<()> {
         let account = data.1;
